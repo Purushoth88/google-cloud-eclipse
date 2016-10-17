@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *******************************************************************************/
+
 package com.google.cloud.tools.eclipse.appengine.libraries;
 
 import static org.hamcrest.Matchers.is;
@@ -28,11 +29,12 @@ import java.net.URISyntaxException;
 import java.util.List;
 
 import org.eclipse.core.runtime.IConfigurationElement;
+import org.eclipse.core.runtime.IExtensionRegistry;
 import org.eclipse.core.runtime.RegistryFactory;
 import org.junit.Test;
 
 import com.google.cloud.tools.eclipse.appengine.libraries.config.LibraryFactory;
-import com.google.cloud.tools.eclipse.appengine.libraries.config.LibraryFactory.LibraryFactoryException;
+import com.google.cloud.tools.eclipse.appengine.libraries.config.LibraryFactoryException;
 
 /**
  * This class is intended to test the App Engine libraries set in the plugin.xml to validate that their attributes
@@ -66,7 +68,7 @@ public class AppEngineLibrariesInPluginXmlTest {
     LibraryFile libraryFile = appEngineLibrary.getLibraryFiles().get(0);
     assertThat(libraryFile.getJavadocUri(), is(new URI("https://cloud.google.com/appengine/docs/java/javadoc/")));
     assertNull(libraryFile.getSourceUri());
-    assertTrue(libraryFile.isExport());
+    assertTrue("App Engine API not exported", libraryFile.isExport());
 
     assertNotNull(libraryFile.getMavenCoordinates());
     MavenCoordinates mavenCoordinates = libraryFile.getMavenCoordinates();
@@ -99,12 +101,15 @@ public class AppEngineLibrariesInPluginXmlTest {
     assertThat(endpointsLibrary.getName(), is("App Engine Endpoints"));
     assertThat(endpointsLibrary.getSiteUri(), is(new URI("https://cloud.google.com/appengine/docs/java/endpoints/")));
     assertTrue(endpointsLibrary.isExport());
+    assertNotNull(endpointsLibrary.getLibraryDependencies());
+    assertThat(endpointsLibrary.getLibraryDependencies().size(), is(1));
+    assertThat(endpointsLibrary.getLibraryDependencies().get(0), is("appengine-api"));
 
     assertThat(endpointsLibrary.getLibraryFiles().size(), is(1));
     LibraryFile libraryFile = endpointsLibrary.getLibraryFiles().get(0);
     assertThat(libraryFile.getJavadocUri(), is(new URI("https://cloud.google.com/appengine/docs/java/endpoints/javadoc/")));
     assertNull(libraryFile.getSourceUri());
-    assertTrue(libraryFile.isExport());
+    assertTrue("Endpoints library not exported", libraryFile.isExport());
 
     assertNotNull(libraryFile.getMavenCoordinates());
     MavenCoordinates mavenCoordinates = libraryFile.getMavenCoordinates();
@@ -136,7 +141,7 @@ public class AppEngineLibrariesInPluginXmlTest {
     LibraryFile libraryFile = objectifyLibrary.getLibraryFiles().get(0);
     assertThat(libraryFile.getJavadocUri(), is(new URI("http://www.javadoc.io/doc/com.googlecode.objectify/objectify/")));
     assertNull(libraryFile.getSourceUri());
-    assertTrue(libraryFile.isExport());
+    assertTrue("Objectify not exported", libraryFile.isExport());
 
     assertNotNull(libraryFile.getMavenCoordinates());
     MavenCoordinates mavenCoordinates = libraryFile.getMavenCoordinates();
@@ -151,9 +156,9 @@ public class AppEngineLibrariesInPluginXmlTest {
     assertTrue(libraryFile.getFilters().isEmpty());
   }
 
-  private Library getLibraryWithId(String libraryId) throws LibraryFactoryException {
-    IConfigurationElement[] configurationElements =
-        RegistryFactory.getRegistry()
+  private static Library getLibraryWithId(String libraryId) throws LibraryFactoryException {
+    IExtensionRegistry registry = RegistryFactory.getRegistry();
+    IConfigurationElement[] configurationElements = registry
           .getConfigurationElementsFor(AppEngineLibraryContainerInitializer.LIBRARIES_EXTENSION_POINT);
     for (IConfigurationElement configurationElement : configurationElements) {
       if (configurationElement.getAttribute("id").equals(libraryId)) {

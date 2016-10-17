@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *******************************************************************************/
+
 package com.google.cloud.tools.eclipse.appengine.libraries;
 
 import java.net.URI;
@@ -31,7 +32,7 @@ import com.google.common.base.Preconditions;
  */
 public final class Library {
   public static final String CONTAINER_PATH_PREFIX = "com.google.cloud.tools.eclipse.appengine.libraries";
-  
+
   private String id;
 
   private String name;
@@ -41,6 +42,11 @@ public final class Library {
   private boolean export = true;
 
   private List<LibraryFile> libraryFiles = Collections.emptyList();
+
+  // library IDs of dependencies that are also need to be added to the build path along this library
+  private List<String> libraryDependencies = new ArrayList<>();
+
+  private LibraryRecommendation recommendation = LibraryRecommendation.OPTIONAL;
 
   public Library(String id) {
     Preconditions.checkNotNull(id, "id null");
@@ -73,13 +79,15 @@ public final class Library {
   }
 
   public List<LibraryFile> getLibraryFiles() {
-    return libraryFiles;
+    return new ArrayList<>(libraryFiles);
   }
 
+  /**
+   * @param libraryFiles artifacts associated with this library, cannot be <code>null</code>
+   */
   public void setLibraryFiles(List<LibraryFile> libraryFiles) {
-    if (libraryFiles != null) {
-      this.libraryFiles = new ArrayList<>(libraryFiles);
-    }
+    Preconditions.checkNotNull(libraryFiles);
+    this.libraryFiles = new ArrayList<>(libraryFiles);
   }
 
   public boolean isExport() {
@@ -88,5 +96,30 @@ public final class Library {
 
   public void setExport(boolean export) {
     this.export = export;
+  }
+
+  public List<String> getLibraryDependencies() {
+    return new ArrayList<>(libraryDependencies);
+  }
+
+  /**
+   * @param libraryDependencies list of libraryIds that are dependencies of this library and should be added to the 
+   * classpath, cannot be <code>null</code>
+   */
+  public void setLibraryDependencies(List<String> libraryDependencies) {
+    Preconditions.checkNotNull(libraryDependencies);
+    this.libraryDependencies = new ArrayList<>(libraryDependencies);
+  }
+
+  /**
+   * @param recommendation the level of recommendation for this library, cannot be <code>null</code>
+   */
+  public void setRecommendation(LibraryRecommendation recommendation) {
+    Preconditions.checkNotNull(recommendation);
+    this.recommendation = recommendation;
+  }
+
+  public LibraryRecommendation getRecommendation() {
+    return recommendation;
   }
 }
