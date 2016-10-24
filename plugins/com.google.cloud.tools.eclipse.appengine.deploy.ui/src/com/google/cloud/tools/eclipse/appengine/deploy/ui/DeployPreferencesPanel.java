@@ -16,18 +16,26 @@
 
 package com.google.cloud.tools.eclipse.appengine.deploy.ui;
 
+import com.google.cloud.tools.eclipse.appengine.facets.AppEngineFlexFacet;
+import com.google.cloud.tools.eclipse.appengine.facets.AppEngineStandardFacet;
 import org.eclipse.core.databinding.DataBindingContext;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.ui.forms.FormColors;
 import org.eclipse.ui.forms.widgets.FormToolkit;
+import org.eclipse.wst.common.project.facet.core.FacetedProjectFramework;
+import org.eclipse.wst.common.project.facet.core.IFacetedProject;
+import org.eclipse.wst.common.project.facet.core.events.IFacetedProjectEvent;
+import org.eclipse.wst.common.project.facet.core.events.IFacetedProjectListener;
 
 abstract class DeployPreferencesPanel extends Composite {
   private FormToolkit formToolkit;
+  private IFacetedProjectListener facetListener;
 
   DeployPreferencesPanel(Composite parent, int style) {
     super(parent, style);
 
     initializeFormToolkit();
+    initializeListeners();
   }
 
   public abstract DataBindingContext getDataBindingContext();
@@ -41,6 +49,7 @@ abstract class DeployPreferencesPanel extends Composite {
     if (formToolkit != null) {
       formToolkit.dispose();
     }
+    FacetedProjectFramework.removeListener(facetListener);
     super.dispose();
   }
 
@@ -53,6 +62,37 @@ abstract class DeployPreferencesPanel extends Composite {
     colors.setBackground(null);
     colors.setForeground(null);
     formToolkit = new FormToolkit(colors);
+  }
+
+  private void initializeListeners() {
+    final boolean isStandardPanel = this instanceof StandardDeployPreferencesPanel;
+
+    facetListener = new IFacetedProjectListener()
+    {
+        @Override
+        public void handleEvent(IFacetedProjectEvent event) {
+          IFacetedProject project = event.getProject();
+          if (isStandardPanel) {
+            if (!AppEngineStandardFacet.hasAppEngineFacet(project)) {
+              disablePageContents();
+            }
+          } else {
+            if (!AppEngineFlexFacet.hasAppEngineFacet(project)) {
+              disablePageContents();
+            }
+          }
+        }
+    };
+
+    FacetedProjectFramework.addListener(facetListener,
+        IFacetedProjectEvent.Type.POST_INSTALL,
+        IFacetedProjectEvent.Type.POST_UNINSTALL );
+  }
+
+  private void disablePageContents() {
+    //this.setEnabled(false);
+    // disable contents when receiver gets focus
+    // show message
   }
 
 }

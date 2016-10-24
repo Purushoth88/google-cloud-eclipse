@@ -105,7 +105,10 @@ public class DeployPropertyPage extends PropertyPage {
 
   @Override
   public void dispose() {
-    content.dispose();
+    if (content != null) {
+      // Content can be null if Properties Page is opened and App Engine facets are uninstalled
+      content.dispose();
+    }
     super.dispose();
   }
 
