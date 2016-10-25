@@ -28,6 +28,8 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.ScrolledComposite;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
+import org.eclipse.swt.widgets.Event;
+import org.eclipse.swt.widgets.Listener;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.dialogs.PropertyPage;
 import org.eclipse.wst.common.project.facet.core.IFacetedProject;
@@ -51,15 +53,21 @@ public class DeployPropertyPage extends PropertyPage {
   @Override
   protected Control createContents(Composite parent) {
     Composite container = new Composite(parent, SWT.NONE);
+    IProject project = AdapterUtil.adapt(getElement(), IProject.class);
+    IFacetedProject facetedProject = null;
+
     try {
-      content = getPreferencesPanel(container);
-      if (content == null) {
-        return container;
-      }
+      facetedProject = ProjectFacetsManager.create(project);
     } catch (CoreException ex) {
       logger.log(Level.WARNING, ex.getMessage());
       return container;
     }
+
+    content = getPreferencesPanel(project, facetedProject, container);
+    if (content == null) {
+      return container;
+    }
+    initializeListeners(facetedProject, container, content instanceof StandardDeployPreferencesPanel);
 
     GridDataFactory.fillDefaults().grab(true, false).applyTo(content);
     GridDataFactory.fillDefaults().grab(true, true).applyTo(container);
@@ -112,9 +120,7 @@ public class DeployPropertyPage extends PropertyPage {
     super.dispose();
   }
 
-  private DeployPreferencesPanel getPreferencesPanel(Composite container) throws CoreException {
-    IProject project = AdapterUtil.adapt(getElement(), IProject.class);
-    IFacetedProject facetedProject = ProjectFacetsManager.create(project);
+  private DeployPreferencesPanel getPreferencesPanel(IProject project, IFacetedProject facetedProject, Composite container) {
     IGoogleLoginService loginService =
         PlatformUI.getWorkbench().getService(IGoogleLoginService.class);
 
@@ -129,5 +135,22 @@ public class DeployPropertyPage extends PropertyPage {
       logger.log(Level.WARNING, "App Engine Deployment property page is only visible if project contains an App Engine facet");
       return null;
     }
+  }
+
+  private void initializeListeners(final IFacetedProject facetedProject, Composite container, final boolean isStandardPanel) {
+    container.addListener(SWT.Paint, new Listener() {
+
+      @Override
+      public void handleEvent(Event event) {
+        if (isStandardPanel && !AppEngineStandardFacet.hasAppEngineFacet(facetedProject)) {
+          setErrorMessage("A big error");
+        } else if (!isStandardPanel && !AppEngineFlexFacet.hasAppEngineFacet(facetedProject)) {
+          setErrorMessage("A big error");
+        } else {
+          setErrorMessage(null);
+        }
+      }
+
+    });
   }
 }
