@@ -150,10 +150,10 @@ public class DeployPropertyPage extends PropertyPage {
       public void handleEvent(Event event) {
         if (isStandardPanel && !AppEngineStandardFacet.hasAppEngineFacet(facetedProject)) {
           IProjectFacet projectFacet = ProjectFacetsManager.getProjectFacet(AppEngineStandardFacet.ID);
-          setErrorMessage(Messages.getString("invalid.page.state", projectFacet.getLabel()));
+          setErrorMessage(Messages.getString("invalid.deploy.page.state", projectFacet.getLabel()));
         } else if (!isStandardPanel && !AppEngineFlexFacet.hasAppEngineFacet(facetedProject)) {
           IProjectFacet projectFacet = ProjectFacetsManager.getProjectFacet(AppEngineFlexFacet.ID);
-          setErrorMessage(Messages.getString("invalid.page.state", projectFacet.getLabel()));
+          setErrorMessage(Messages.getString("invalid.deploy.page.state", projectFacet.getLabel()));
         } else {
           setErrorMessage(null);
         }
