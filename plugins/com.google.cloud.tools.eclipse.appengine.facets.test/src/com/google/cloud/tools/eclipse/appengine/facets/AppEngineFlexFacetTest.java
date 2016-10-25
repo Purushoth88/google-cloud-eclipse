@@ -52,4 +52,11 @@ public class AppEngineFlexFacetTest {
 
     Assert.assertFalse(AppEngineFlexFacet.hasAppEngineFacet(facetedProject));
   }
+
+  @Test
+  public void testFacetLabel() {
+    IProjectFacet projectFacet = ProjectFacetsManager.getProjectFacet(AppEngineFlexFacet.ID);
+
+    Assert.assertEquals("App Engine Java Flexible Environment", projectFacet.getLabel());
+  }
 }
