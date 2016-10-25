@@ -99,8 +99,13 @@ public class DeployPropertyPage extends PropertyPage {
 
   @Override
   public boolean performOk() {
+    // Content can be null if Properties Page is opened and App Engine facets are uninstalled
     if (isValid()) {
-      return content.savePreferences();
+      if (content == null) {
+        return true;
+      } else {
+        return content.savePreferences();
+      }
     }
     return false;
   }
@@ -143,9 +148,9 @@ public class DeployPropertyPage extends PropertyPage {
       @Override
       public void handleEvent(Event event) {
         if (isStandardPanel && !AppEngineStandardFacet.hasAppEngineFacet(facetedProject)) {
-          setErrorMessage("A big error");
+          setErrorMessage(Messages.getString("invalid.page.state", "Standard"));
         } else if (!isStandardPanel && !AppEngineFlexFacet.hasAppEngineFacet(facetedProject)) {
-          setErrorMessage("A big error");
+          setErrorMessage(Messages.getString("invalid.page.state", "Flexible"));
         } else {
           setErrorMessage(null);
         }
