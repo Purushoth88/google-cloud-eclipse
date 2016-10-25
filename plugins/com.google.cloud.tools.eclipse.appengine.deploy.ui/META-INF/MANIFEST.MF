@@ -63,6 +63,5 @@ Import-Package: com.google.api.client.auth.oauth2,
  org.eclipse.ui.forms.events,
  org.eclipse.ui.forms.widgets,
  org.eclipse.wst.common.project.facet.core,
- org.eclipse.wst.common.project.facet.core.events,
  org.osgi.framework;version="1.8.0",
  org.osgi.service.prefs;version="1.1.1"

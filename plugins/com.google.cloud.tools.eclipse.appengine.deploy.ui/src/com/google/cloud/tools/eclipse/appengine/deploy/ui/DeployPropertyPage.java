@@ -33,6 +33,7 @@ import org.eclipse.swt.widgets.Listener;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.dialogs.PropertyPage;
 import org.eclipse.wst.common.project.facet.core.IFacetedProject;
+import org.eclipse.wst.common.project.facet.core.IProjectFacet;
 import org.eclipse.wst.common.project.facet.core.ProjectFacetsManager;
 
 import com.google.cloud.tools.eclipse.appengine.facets.AppEngineFlexFacet;
@@ -148,9 +149,11 @@ public class DeployPropertyPage extends PropertyPage {
       @Override
       public void handleEvent(Event event) {
         if (isStandardPanel && !AppEngineStandardFacet.hasAppEngineFacet(facetedProject)) {
-          setErrorMessage(Messages.getString("invalid.page.state", "Standard"));
+          IProjectFacet projectFacet = ProjectFacetsManager.getProjectFacet(AppEngineStandardFacet.ID);
+          setErrorMessage(Messages.getString("invalid.page.state", projectFacet.getLabel()));
         } else if (!isStandardPanel && !AppEngineFlexFacet.hasAppEngineFacet(facetedProject)) {
-          setErrorMessage(Messages.getString("invalid.page.state", "Flexible"));
+          IProjectFacet projectFacet = ProjectFacetsManager.getProjectFacet(AppEngineFlexFacet.ID);
+          setErrorMessage(Messages.getString("invalid.page.state", projectFacet.getLabel()));
         } else {
           setErrorMessage(null);
         }
