@@ -16,8 +16,10 @@
 
 package com.google.cloud.tools.eclipse.appengine.newproject.maven;
 
+import com.google.cloud.tools.eclipse.appengine.libraries.model.Library;
 import com.google.cloud.tools.eclipse.appengine.newproject.JavaPackageValidator;
 import com.google.cloud.tools.eclipse.appengine.ui.AppEngineImages;
+import com.google.cloud.tools.eclipse.appengine.ui.AppEngineLibrariesSelectorGroup;
 import com.google.cloud.tools.eclipse.usagetracker.AnalyticsEvents;
 import com.google.cloud.tools.eclipse.usagetracker.AnalyticsPingManager;
 import com.google.common.annotations.VisibleForTesting;
@@ -48,6 +50,7 @@ import org.eclipse.swt.widgets.Text;
 
 import java.nio.file.Paths;
 import java.text.MessageFormat;
+import java.util.List;
 
 /**
  * UI to collect all information necessary to create a new Maven-based App Engine Standard Java
@@ -64,6 +67,7 @@ public class MavenAppEngineStandardWizardPage extends WizardPage {
   private Text artifactIdField;
   private Text versionField;
   @VisibleForTesting Text javaPackageField;
+  private AppEngineLibrariesSelectorGroup appEngineLibrariesSelectorGroup;
 
   private boolean canFlipPage;
 
@@ -85,12 +89,12 @@ public class MavenAppEngineStandardWizardPage extends WizardPage {
 
     Composite container = new Composite(parent, SWT.NONE);
     GridLayoutFactory.swtDefaults().numColumns(2).applyTo(container);
+    setControl(container);
 
     createLocationArea(container);
     createMavenCoordinatesArea(container);
     createAppEngineProjectDetailsArea(container);
-
-    setControl(container);
+    appEngineLibrariesSelectorGroup = new AppEngineLibrariesSelectorGroup(this, container);
 
     Dialog.applyDialogFont(container);
   }
@@ -238,6 +242,16 @@ public class MavenAppEngineStandardWizardPage extends WizardPage {
     }
 
     return true;
+  }
+
+  public List<Library> getSelectedLibraries() {
+    return appEngineLibrariesSelectorGroup.getSelectedLibraries();
+  }
+
+  @Override
+  public void dispose() {
+    appEngineLibrariesSelectorGroup.dispose();
+    super.dispose();
   }
 
   /**

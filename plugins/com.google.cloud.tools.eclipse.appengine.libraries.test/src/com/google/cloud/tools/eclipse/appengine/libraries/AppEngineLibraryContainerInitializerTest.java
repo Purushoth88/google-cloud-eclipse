@@ -32,7 +32,9 @@ import com.google.cloud.tools.eclipse.appengine.libraries.model.LibraryFactoryEx
 import com.google.cloud.tools.eclipse.appengine.libraries.model.LibraryFile;
 import com.google.cloud.tools.eclipse.appengine.libraries.model.MavenCoordinates;
 import com.google.cloud.tools.eclipse.appengine.libraries.persistence.LibraryClasspathContainerSerializer;
+import com.google.cloud.tools.eclipse.appengine.libraries.persistence.LibraryClasspathContainerSerializer.ArtifactBaseLocationProvider;
 import com.google.cloud.tools.eclipse.appengine.libraries.persistence.LibraryClasspathContainerSerializer.LibraryContainerStateLocationProvider;
+import com.google.cloud.tools.eclipse.appengine.libraries.repository.ILibraryRepositoryService;
 import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
@@ -63,12 +65,11 @@ public class AppEngineLibraryContainerInitializerTest {
   @Mock private LibraryFactory libraryFactory;
   @Mock private IConfigurationElement configurationElement;
   @Mock private LibraryContainerStateLocationProvider containerStateProvider;
+  @Mock private ArtifactBaseLocationProvider artifactBaseLocationProvider;
+  @Mock private ILibraryRepositoryService repositoryService;
 
   private LibraryClasspathContainerSerializer serializer;
 
-  @Rule
-  public TestLibraryRepositoryServiceRegistrar libraryRepositoryServiceRegistrar =
-      new TestLibraryRepositoryServiceRegistrar();
   @Rule
   public TestProject testProject = new TestProject().withClasspathContainerPath(TEST_LIBRARY_PATH);
   @Rule
@@ -76,14 +77,12 @@ public class AppEngineLibraryContainerInitializerTest {
 
   @Before
   public void setUp() throws Exception {
-    when(libraryRepositoryServiceRegistrar.getRepositoryService().getLibraryClasspathEntry(any(LibraryFile.class)))
+    when(repositoryService.rebuildClasspathEntry(any(IClasspathEntry.class)))
       .thenAnswer(fakeClasspathEntry());
     setupLibraryFactory();
     setupSerializer();
   }
 
-  // TODO currently AppEngineLibraryContainerInitializer does not depend on ILibraryRepositoryService, but will
-  // after https://github.com/GoogleCloudPlatform/google-cloud-eclipse/issues/855 is resolved
   /**
    * This test relies on the {@link TestAppEngineLibraryContainerInitializer} defined in the fragment.xml for
    * <code>TEST_CONTAINER_PATH</code>. When the test is launched, the Platform will try to initialize the container
@@ -101,7 +100,8 @@ public class AppEngineLibraryContainerInitializerTest {
         new AppEngineLibraryContainerInitializer(new IConfigurationElement[]{ configurationElement },
                                                  libraryFactory,
                                                  TEST_CONTAINER_PATH,
-                                                 serializer);
+                                                 serializer,
+                                                 repositoryService);
     containerInitializer.initialize(new Path(TEST_LIBRARY_PATH), testProject.getJavaProject());
 
     IClasspathEntry[] resolvedClasspath = testProject.getJavaProject().getResolvedClasspath(false);
@@ -148,7 +148,8 @@ public class AppEngineLibraryContainerInitializerTest {
         new AppEngineLibraryContainerInitializer(new IConfigurationElement[]{ configurationElement },
                                                  libraryFactory,
                                                  TEST_CONTAINER_PATH,
-                                                 serializer);
+                                                 serializer,
+                                                 repositoryService);
     containerInitializer.initialize(new Path(TEST_CONTAINER_PATH + "/second.segment"), testProject.getJavaProject());
     IClasspathEntry[] resolvedClasspath = testProject.getJavaProject().getResolvedClasspath(false);
     assertThat(resolvedClasspath.length, is(1));
@@ -169,7 +170,8 @@ public class AppEngineLibraryContainerInitializerTest {
                                                                               configurationElement },
                                                  libraryFactory,
                                                  TEST_CONTAINER_PATH,
-                                                 serializer);
+                                                 serializer,
+                                                 repositoryService);
     containerInitializer.initialize(new Path(TEST_LIBRARY_PATH), testProject.getJavaProject());
 
     IClasspathEntry[] resolvedClasspath = testProject.getJavaProject().getResolvedClasspath(false);
@@ -199,7 +201,8 @@ public class AppEngineLibraryContainerInitializerTest {
   }
 
   private void setupSerializer() throws IOException, CoreException {
-    serializer = new LibraryClasspathContainerSerializer(containerStateProvider);
+    serializer = new LibraryClasspathContainerSerializer(containerStateProvider, artifactBaseLocationProvider);
+    when(artifactBaseLocationProvider.getBaseLocation()).thenReturn(new Path("/test"));
     File stateFile = stateLocationFolder.newFile();
     when(containerStateProvider.getContainerStateFile(any(IJavaProject.class),
                                                       eq(new Path(TEST_LIBRARY_PATH)),
@@ -218,11 +221,7 @@ public class AppEngineLibraryContainerInitializerTest {
     return new Answer<IClasspathEntry>() {
       @Override
       public IClasspathEntry answer(InvocationOnMock invocation) throws Throwable {
-        MavenCoordinates mavenCoordinates = invocation.getArgumentAt(0, MavenCoordinates.class);
-        IClasspathEntry classpathEntry = mock(IClasspathEntry.class);
-        when(classpathEntry.getPath()).thenReturn(new Path("/test/path/" + mavenCoordinates.getArtifactId() + "." + mavenCoordinates.getType()));
-        when(classpathEntry.getSourceAttachmentPath()).thenReturn(new Path("/test/path/" + mavenCoordinates.getArtifactId() + "-sources." + mavenCoordinates.getType()));
-        return classpathEntry;
+        return invocation.getArgumentAt(0, IClasspathEntry.class);
       }
     };
   }
