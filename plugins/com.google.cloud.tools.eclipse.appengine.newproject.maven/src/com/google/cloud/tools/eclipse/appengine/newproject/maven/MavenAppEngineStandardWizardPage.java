@@ -46,6 +46,7 @@ import org.eclipse.swt.widgets.Group;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Text;
 
+import java.nio.file.Paths;
 import java.text.MessageFormat;
 
 /**
@@ -182,7 +183,7 @@ public class MavenAppEngineStandardWizardPage extends WizardPage {
     javaPackageField.addModifyListener(pageValidator);
   }
 
-  protected void openLocationDialog() {
+  private void openLocationDialog() {
     DirectoryDialog dialog = new DirectoryDialog(getShell());
     dialog.setText(Messages.getString("GENERATED_PROJECT_LOCATION")); //$NON-NLS-1$
     String location = dialog.open();
@@ -197,7 +198,7 @@ public class MavenAppEngineStandardWizardPage extends WizardPage {
     return canFlipPage;
   }
 
-  protected void checkFlipToNext() {
+  private void checkFlipToNext() {
     canFlipPage = validatePage();
     getContainer().updateButtons();
   }
@@ -207,17 +208,24 @@ public class MavenAppEngineStandardWizardPage extends WizardPage {
    *
    * @return true if valid, false if there is a problem
    */
-  public boolean validatePage() {
+  private boolean validatePage() {
     setMessage(null);
     setErrorMessage(null);
 
     // order here should match order of the UI fields
 
     String location = locationField.getText().trim();
-    if (!useDefaults() && location.isEmpty()) {
-      setMessage(Messages.getString("PROVIDE_LOCATION"), INFORMATION); //$NON-NLS-1$
-      return false;
-    }
+    if (!useDefaults()) {
+      if (location.isEmpty()) {
+	    setMessage(Messages.getString("PROVIDE_LOCATION"), INFORMATION); //$NON-NLS-1$
+	    return false;
+      } else if (!Paths.get(location).toFile().exists()) {
+  	    String message = MessageFormat.format(
+  	    		Messages.getString("MISSING_LOCATION"), location); //$NON-NLS-1$
+		setMessage(message, INFORMATION);
+	    return false;
+      }
+    } 
 
     if (!validateMavenSettings()) {
       return false;
