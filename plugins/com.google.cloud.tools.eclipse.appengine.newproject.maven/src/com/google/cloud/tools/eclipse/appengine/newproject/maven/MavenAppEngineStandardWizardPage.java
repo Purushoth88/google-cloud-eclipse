@@ -48,6 +48,7 @@ import org.eclipse.swt.widgets.Group;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Text;
 
+import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.text.MessageFormat;
 import java.util.List;
@@ -218,16 +219,25 @@ public class MavenAppEngineStandardWizardPage extends WizardPage {
 
     // order here should match order of the UI fields
 
-    String location = locationField.getText().trim();
+
     if (!useDefaults()) {
+      String location = locationField.getText().trim();
       if (location.isEmpty()) {
 	    setMessage(Messages.getString("PROVIDE_LOCATION"), INFORMATION); //$NON-NLS-1$
 	    return false;
-      } else if (!Paths.get(location).toFile().exists()) {
-  	    String message = MessageFormat.format(
-  	    		Messages.getString("MISSING_LOCATION"), location); //$NON-NLS-1$
-		setMessage(message, INFORMATION);
-	    return false;
+      } else {
+          java.nio.file.Path path = Paths.get(location);
+    	  if (Files.exists(path) && !Files.isDirectory(path)) {
+            String message = MessageFormat.format(Messages.getString("MISSING_LOCATION"), location); //$NON-NLS-1$
+    	  	setMessage(message, INFORMATION);
+            return false;    		  
+          } else if (Files.exists(path) && !Files.isWritable(path)) {
+            String message = MessageFormat.format(Messages.getString("NONWRITABLE"), location); //$NON-NLS-1$
+      	  	setMessage(message, INFORMATION);
+            return false;         	  
+          }
+    	  // TODO how to check if a directory that doesnt exist could be created?
+
       }
     } 
 
