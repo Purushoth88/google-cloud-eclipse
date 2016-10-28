@@ -245,6 +245,9 @@ public class StandardDeployPreferencesPanel extends DeployPreferencesPanel {
   @Override
   public boolean savePreferences() {
     try {
+      if (getAllowSave()) {
+        
+      }
       model.savePreferences();
       return true;
     } catch (BackingStoreException exception) {

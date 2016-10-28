@@ -49,13 +49,16 @@ import com.google.cloud.tools.eclipse.util.AdapterUtil;
 public class DeployPropertyPage extends PropertyPage {
 
   private DeployPreferencesPanel content;
+  private boolean doesProjectHaveAppEngineFacet;
+  private boolean isStandardPanel;
+  private IFacetedProject facetedProject = null;
   private static final Logger logger = Logger.getLogger(DeployPropertyPage.class.getName());
 
   @Override
   protected Control createContents(Composite parent) {
     Composite container = new Composite(parent, SWT.NONE);
     IProject project = AdapterUtil.adapt(getElement(), IProject.class);
-    IFacetedProject facetedProject = null;
+    //IFacetedProject facetedProject = null;
 
     try {
       facetedProject = ProjectFacetsManager.create(project);
@@ -68,6 +71,7 @@ public class DeployPropertyPage extends PropertyPage {
     if (content == null) {
       return container;
     }
+    isStandardPanel = content instanceof StandardDeployPreferencesPanel;
     initializeListeners(facetedProject, container, content instanceof StandardDeployPreferencesPanel);
 
     GridDataFactory.fillDefaults().grab(true, false).applyTo(content);
@@ -126,6 +130,35 @@ public class DeployPropertyPage extends PropertyPage {
     super.dispose();
   }
 
+  @Override
+  public void setErrorMessage(String newMessage) {
+    if (newMessage != null) {
+      System.out.println(newMessage);
+    } else {
+      System.out.println("newMessage == null");
+    }
+    if (!doesProjectHaveAppEngineFacet) {
+      return;
+    }
+
+    super.setErrorMessage(newMessage);
+    if (getContainer() != null) {
+      getContainer().updateMessage();
+    }
+  }
+
+  @Override
+  public void setMessage(String newMessage, int newType) {
+    if (!doesProjectHaveAppEngineFacet) {
+      return;
+    }
+
+    super.setMessage(newMessage, newType);
+    if (getContainer() != null) {
+      getContainer().updateMessage();
+    }
+  }
+
   private DeployPreferencesPanel getPreferencesPanel(IProject project, IFacetedProject facetedProject, Composite container) {
     IGoogleLoginService loginService =
         PlatformUI.getWorkbench().getService(IGoogleLoginService.class);
@@ -144,21 +177,68 @@ public class DeployPropertyPage extends PropertyPage {
   }
 
   private void initializeListeners(final IFacetedProject facetedProject, Composite container, final boolean isStandardPanel) {
+    
+    
+    
+    
     container.addListener(SWT.Paint, new Listener() {
 
       @Override
       public void handleEvent(Event event) {
         if (isStandardPanel && !AppEngineStandardFacet.hasAppEngineFacet(facetedProject)) {
           IProjectFacet projectFacet = ProjectFacetsManager.getProjectFacet(AppEngineStandardFacet.ID);
-          setErrorMessage(Messages.getString("invalid.deploy.page.state", projectFacet.getLabel()));
+          //setErrorMessage(Messages.getString("invalid.deploy.page.state", projectFacet.getLabel()));
+          //content.setAllowSave(false);
+          doesProjectHaveAppEngineFacet = false;
         } else if (!isStandardPanel && !AppEngineFlexFacet.hasAppEngineFacet(facetedProject)) {
           IProjectFacet projectFacet = ProjectFacetsManager.getProjectFacet(AppEngineFlexFacet.ID);
-          setErrorMessage(Messages.getString("invalid.deploy.page.state", projectFacet.getLabel()));
+          //setErrorMessage(Messages.getString("invalid.deploy.page.state", projectFacet.getLabel()));
+          //content.setAllowSave(false);
+          doesProjectHaveAppEngineFacet = false;
         } else {
-          setErrorMessage(null);
+          //setErrorMessage(null);
+          //content.setAllowSave(true);
+          //doesProjectHaveAppEngineFacet = true;
+          ///System.out.println("error message set to null");
         }
       }
 
     });
   }
+
+  @Override
+  public void setVisible(boolean visible) {
+    super.setVisible(visible);
+    doSomething();
+  }
+
+  /**
+   * Check to see if the project associated with this Property dialog,
+   * still has an App Engine facet. If it does, do nothing. If it doesn't
+   * display appropriate error message and don't allow the preferences to be saved.
+   */
+  private void doSomething() {
+    // allow saving
+    // allow error message from dialog validation checks
+    // print out error messages
+    
+    if (isStandardPanel && !AppEngineStandardFacet.hasAppEngineFacet(facetedProject)) {
+      IProjectFacet projectFacet = ProjectFacetsManager.getProjectFacet(AppEngineStandardFacet.ID);
+      setErrorMessage(Messages.getString("invalid.deploy.page.state", projectFacet.getLabel()));
+      content.setAllowSave(false);
+      doesProjectHaveAppEngineFacet = false;
+    } else if (!isStandardPanel && !AppEngineFlexFacet.hasAppEngineFacet(facetedProject)) {
+      IProjectFacet projectFacet = ProjectFacetsManager.getProjectFacet(AppEngineFlexFacet.ID);
+      setErrorMessage(Messages.getString("invalid.deploy.page.state", projectFacet.getLabel()));
+      content.setAllowSave(false);
+      doesProjectHaveAppEngineFacet = false;
+    } else {
+      setErrorMessage(null);
+      content.setAllowSave(true);
+      doesProjectHaveAppEngineFacet = true;
+      System.out.println("error message set to null");
+    }
+    
+  }
+ 
 }
