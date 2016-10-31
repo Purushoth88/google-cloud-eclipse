@@ -132,11 +132,7 @@ public class DeployPropertyPage extends PropertyPage {
     if (!canSetMessage) {
       return;
     }
-
     super.setErrorMessage(newMessage);
-    if (getContainer() != null) {
-      getContainer().updateMessage();
-    }
   }
 
   @Override
@@ -144,11 +140,7 @@ public class DeployPropertyPage extends PropertyPage {
     if (!canSetMessage) {
       return;
     }
-
     super.setMessage(newMessage, newType);
-    if (getContainer() != null) {
-      getContainer().updateMessage();
-    }
   }
 
   private DeployPreferencesPanel getPreferencesPanel(IProject project, IFacetedProject facetedProject, Composite container) {
