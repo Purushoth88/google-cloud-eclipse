@@ -167,9 +167,9 @@ public class DeployPropertyPage extends PropertyPage {
   }
 
   /**
-   * Checks to see if the project associated with this Property dialog,
-   * still has an App Engine facet. If it does, do nothing. If it doesn't
-   * display appropriate error message.
+   * Checks to see if the project associated with this Property dialog still has a valid
+   * App Engine facet. If it does, allow messages to be displayed. If it doesn't display
+   * appropriate error message and prevent other messages from being displayed.
    */
   private void evaluateFacetConfiguration() {
     if (isStandardPanel && !AppEngineStandardFacet.hasAppEngineFacet(facetedProject)) {
