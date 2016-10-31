@@ -234,7 +234,6 @@ public class MavenAppEngineStandardWizardPage extends WizardPage {
 
     // order here should match order of the UI fields
 
-
     if (!useDefaults()) {
       String location = locationField.getText().trim();
       if (location.isEmpty()) {
@@ -243,7 +242,7 @@ public class MavenAppEngineStandardWizardPage extends WizardPage {
       } else {
           java.nio.file.Path path = Paths.get(location);
     	  if (Files.exists(path) && !Files.isDirectory(path)) {
-            String message = MessageFormat.format(Messages.getString("MISSING_LOCATION"), location); //$NON-NLS-1$
+            String message = MessageFormat.format(Messages.getString("FILE_LOCATION"), location); //$NON-NLS-1$
     	  	setMessage(message, INFORMATION);
             return false;    		  
           } else if (Files.exists(path) && !Files.isWritable(path)) {
@@ -251,7 +250,7 @@ public class MavenAppEngineStandardWizardPage extends WizardPage {
       	  	setMessage(message, INFORMATION);
             return false;         	  
           }
-    	  // TODO how to check if a directory that doesnt exist could be created?
+    	  // TODO how to check if a directory that doesn't exist could be created?
 
       }
     } 
