@@ -52,13 +52,13 @@ public class DeployPropertyPage extends PropertyPage {
   private boolean doesProjectHaveAppEngineFacet;
   private boolean isStandardPanel;
   private IFacetedProject facetedProject = null;
+  private String invalidFacetConfigErrorMessage = "";
   private static final Logger logger = Logger.getLogger(DeployPropertyPage.class.getName());
 
   @Override
   protected Control createContents(Composite parent) {
     Composite container = new Composite(parent, SWT.NONE);
     IProject project = AdapterUtil.adapt(getElement(), IProject.class);
-    //IFacetedProject facetedProject = null;
 
     try {
       facetedProject = ProjectFacetsManager.create(project);
@@ -72,7 +72,6 @@ public class DeployPropertyPage extends PropertyPage {
       return container;
     }
     isStandardPanel = content instanceof StandardDeployPreferencesPanel;
-    initializeListeners(facetedProject, container, content instanceof StandardDeployPreferencesPanel);
 
     GridDataFactory.fillDefaults().grab(true, false).applyTo(content);
     GridDataFactory.fillDefaults().grab(true, true).applyTo(container);
@@ -133,7 +132,7 @@ public class DeployPropertyPage extends PropertyPage {
   @Override
   public void setErrorMessage(String newMessage) {
     if (newMessage != null) {
-      System.out.println(newMessage);
+      System.out.println("newMessage == " + newMessage);
     } else {
       System.out.println("newMessage == null");
     }
@@ -176,40 +175,10 @@ public class DeployPropertyPage extends PropertyPage {
     }
   }
 
-  private void initializeListeners(final IFacetedProject facetedProject, Composite container, final boolean isStandardPanel) {
-    
-    
-    
-    
-    container.addListener(SWT.Paint, new Listener() {
-
-      @Override
-      public void handleEvent(Event event) {
-        if (isStandardPanel && !AppEngineStandardFacet.hasAppEngineFacet(facetedProject)) {
-          IProjectFacet projectFacet = ProjectFacetsManager.getProjectFacet(AppEngineStandardFacet.ID);
-          //setErrorMessage(Messages.getString("invalid.deploy.page.state", projectFacet.getLabel()));
-          //content.setAllowSave(false);
-          doesProjectHaveAppEngineFacet = false;
-        } else if (!isStandardPanel && !AppEngineFlexFacet.hasAppEngineFacet(facetedProject)) {
-          IProjectFacet projectFacet = ProjectFacetsManager.getProjectFacet(AppEngineFlexFacet.ID);
-          //setErrorMessage(Messages.getString("invalid.deploy.page.state", projectFacet.getLabel()));
-          //content.setAllowSave(false);
-          doesProjectHaveAppEngineFacet = false;
-        } else {
-          //setErrorMessage(null);
-          //content.setAllowSave(true);
-          //doesProjectHaveAppEngineFacet = true;
-          ///System.out.println("error message set to null");
-        }
-      }
-
-    });
-  }
-
   @Override
   public void setVisible(boolean visible) {
     super.setVisible(visible);
-    doSomething();
+    evaluateFacetConfiguration();
   }
 
   /**
@@ -217,26 +186,31 @@ public class DeployPropertyPage extends PropertyPage {
    * still has an App Engine facet. If it does, do nothing. If it doesn't
    * display appropriate error message and don't allow the preferences to be saved.
    */
-  private void doSomething() {
-    // allow saving
-    // allow error message from dialog validation checks
-    // print out error messages
-    
+  private void evaluateFacetConfiguration() {
     if (isStandardPanel && !AppEngineStandardFacet.hasAppEngineFacet(facetedProject)) {
       IProjectFacet projectFacet = ProjectFacetsManager.getProjectFacet(AppEngineStandardFacet.ID);
-      setErrorMessage(Messages.getString("invalid.deploy.page.state", projectFacet.getLabel()));
-      content.setAllowSave(false);
-      doesProjectHaveAppEngineFacet = false;
+      invalidFacetConfigErrorMessage = Messages.getString("invalid.deploy.page.state", projectFacet.getLabel());
+      updatePageBasedOnFacetConfig(false);
     } else if (!isStandardPanel && !AppEngineFlexFacet.hasAppEngineFacet(facetedProject)) {
       IProjectFacet projectFacet = ProjectFacetsManager.getProjectFacet(AppEngineFlexFacet.ID);
-      setErrorMessage(Messages.getString("invalid.deploy.page.state", projectFacet.getLabel()));
-      content.setAllowSave(false);
-      doesProjectHaveAppEngineFacet = false;
+      invalidFacetConfigErrorMessage = Messages.getString("invalid.deploy.page.state", projectFacet.getLabel());
+      updatePageBasedOnFacetConfig(false);
     } else {
+      invalidFacetConfigErrorMessage = "";
+      updatePageBasedOnFacetConfig(true);
+    }
+
+  }
+
+  private void updatePageBasedOnFacetConfig(boolean hasCorrectFacetConfiguration) {
+    if (hasCorrectFacetConfiguration) {
+      doesProjectHaveAppEngineFacet = true;
       setErrorMessage(null);
       content.setAllowSave(true);
-      doesProjectHaveAppEngineFacet = true;
-      System.out.println("error message set to null");
+    } else {
+      setErrorMessage(invalidFacetConfigErrorMessage);
+      content.setAllowSave(false);
+      doesProjectHaveAppEngineFacet = false;
     }
     
   }
