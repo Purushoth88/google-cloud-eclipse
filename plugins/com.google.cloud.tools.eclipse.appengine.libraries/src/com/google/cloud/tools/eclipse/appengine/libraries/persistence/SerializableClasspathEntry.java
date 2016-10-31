@@ -16,6 +16,7 @@
 
 package com.google.cloud.tools.eclipse.appengine.libraries.persistence;
 
+import com.google.cloud.tools.eclipse.util.io.PathUtil;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.Path;
 import org.eclipse.jdt.core.IAccessRule;
@@ -33,23 +34,30 @@ public class SerializableClasspathEntry {
   private String path;
   private SerializableAttribute[] attributes;
 
+  public SerializableClasspathEntry(IClasspathEntry entry, IPath baseDirectory) {
+    setAttributes(entry.getExtraAttributes());
+    setAccessRules(entry.getAccessRules());
+    setSourcePath(entry.getSourceAttachmentPath());
+    setPath(PathUtil.relativizePath(entry.getPath(), baseDirectory).toString());
+  }
+
+  private void setPath(String path) {
+    this.path = path;
+  }
+
   public void setAttributes(IClasspathAttribute[] extraAttributes) {
     attributes = new SerializableAttribute[extraAttributes.length];
     for (int i = 0; i < extraAttributes.length; i++) {
       IClasspathAttribute attribute = extraAttributes[i];
-      attributes[i] = new SerializableAttribute(attribute.getName(), attribute.getValue());
+      attributes[i] = new SerializableAttribute(attribute);
     }
-  }
-
-  public void setPath(IPath path) {
-    this.path = path.toOSString();
   }
 
   public void setAccessRules(IAccessRule[] accessRules) {
     this.accessRules = new SerializableAccessRules[accessRules.length];
     for (int i = 0; i < accessRules.length; i++) {
       IAccessRule rule = accessRules[i];
-      this.accessRules[i] = new SerializableAccessRules(rule.getKind(), rule.getPattern());
+      this.accessRules[i] = new SerializableAccessRules(rule);
     }
   }
 
@@ -57,29 +65,27 @@ public class SerializableClasspathEntry {
     this.sourceAttachmentPath = sourceAttachmentPath.toOSString();
   }
 
-  public IClasspathEntry toClasspathEntry() {
-    return JavaCore.newLibraryEntry(new Path(path),
+  public IClasspathEntry toClasspathEntry(IPath baseDirectory) {
+    return JavaCore.newLibraryEntry(PathUtil.makePathAbsolute(new Path(path), baseDirectory),
                                     new Path(sourceAttachmentPath),
                                     null,
-                                    getAccessRules(accessRules),
-                                    getAttributes(attributes),
+                                    getAccessRules(),
+                                    getAttributes(),
                                     true);
   }
 
-  private IClasspathAttribute[] getAttributes(SerializableAttribute[] attributes) {
+  private IClasspathAttribute[] getAttributes() {
     IClasspathAttribute[] classpathAttributes = new IClasspathAttribute[attributes.length];
     for (int i = 0; i < attributes.length; i++) {
-      SerializableAttribute serializableAttribute = attributes[i];
-      classpathAttributes[i] = serializableAttribute.toClasspathAttribute();
+      classpathAttributes[i] = attributes[i].toClasspathAttribute();
     }
     return classpathAttributes;
   }
 
-  private IAccessRule[] getAccessRules(SerializableAccessRules[] accessRules) {
+  private IAccessRule[] getAccessRules() {
     IAccessRule[] rules = new IAccessRule[accessRules.length];
     for (int i = 0; i < accessRules.length; i++) {
-      SerializableAccessRules serializableAccessRules = accessRules[i];
-      rules[i] = serializableAccessRules.toAccessRule();
+      rules[i] = accessRules[i].toAccessRule();
     }
     return rules;
   }

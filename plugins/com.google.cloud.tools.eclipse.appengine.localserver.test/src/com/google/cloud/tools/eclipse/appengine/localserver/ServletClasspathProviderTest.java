@@ -44,7 +44,7 @@ public class ServletClasspathProviderTest {
 
   private ServletClasspathProvider provider;
   @Mock private ILibraryRepositoryService repositoryService;
-  
+
   @Before
   public void setUp() throws LibraryRepositoryServiceException {
     Library servletApi = getMockApi("servlet-api");

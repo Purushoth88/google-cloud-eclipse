@@ -17,8 +17,10 @@
 package com.google.cloud.tools.eclipse.appengine.newproject.maven;
 
 import com.google.cloud.tools.eclipse.appengine.facets.AppEngineStandardFacet;
+import com.google.cloud.tools.eclipse.appengine.libraries.model.Library;
 import com.google.cloud.tools.eclipse.util.MavenUtils;
 import java.lang.reflect.InvocationTargetException;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
 import org.apache.maven.archetype.catalog.Archetype;
@@ -46,6 +48,7 @@ public class CreateMavenBasedAppEngineStandardProject extends WorkspaceModifyOpe
   private String version;
   private IPath location;
   private Archetype archetype;
+  private HashSet<String> appEngineLibraryIds = new HashSet<String>();
 
   @Override
   protected void execute(IProgressMonitor monitor)
@@ -66,13 +69,13 @@ public class CreateMavenBasedAppEngineStandardProject extends WorkspaceModifyOpe
     properties.put("useJstl", "true");
     // The project ID is currently necessary due to tool bugs.
     properties.put("application-id", artifactId);
-    properties.put("useObjectify", "false");
-    properties.put("useEndpoints1", "false");
+    properties.put("useObjectify", Boolean.toString(appEngineLibraryIds.contains("objectify")));
+    properties.put("useEndpoints1", Boolean.toString(appEngineLibraryIds.contains("appengine-endpoints")));
     properties.put("useEndpoints2", "false");
-    properties.put("useAppEngineApi", "false");
+    properties.put("useAppEngineApi", Boolean.toString(appEngineLibraryIds.contains("appengine-api")));
 
     ProjectImportConfiguration importConfiguration = new ProjectImportConfiguration();
-    String packageName = this.packageName == null || this.packageName.isEmpty() 
+    String packageName = this.packageName == null || this.packageName.isEmpty()
         ? groupId : this.packageName;
     List<IProject> archetypeProjects = projectConfigurationManager.createArchetypeProjects(location,
         archetype, groupId, artifactId, version, packageName, properties,
@@ -85,10 +88,10 @@ public class CreateMavenBasedAppEngineStandardProject extends WorkspaceModifyOpe
       AppEngineStandardFacet.installAppEngineFacet(facetedProject, true /* installDependentFacets */, loopMonitor.newChild(1));
       AppEngineStandardFacet.installAllAppEngineRuntimes(facetedProject, true /* force */, loopMonitor.newChild(1));
     }
-    
+
     /*
      * invoke the Maven lifecycle mapping discovery job
-     * 
+     *
      * todo: is this step necessary? we know the archetype contents and we handle the
      * lifecycle-mappings and rules
      */
@@ -118,16 +121,23 @@ public class CreateMavenBasedAppEngineStandardProject extends WorkspaceModifyOpe
   void setLocation(IPath location) {
     this.location = location;
   }
-  
+
   /**
    * Set the version of the project to be created.
    */
   void setVersion(String version) {
     this.version = version;
   }
-  
+
   void setArchetype(Archetype archetype) {
     this.archetype = archetype;
+  }
+
+  void setAppEngineLibraryIds(List<Library> libraries) {
+    appEngineLibraryIds = new HashSet<String>();
+    for (int i = 0; i < libraries.size(); i++) {
+      appEngineLibraryIds.add(libraries.get(i).getId());
+    }
   }
 
 }

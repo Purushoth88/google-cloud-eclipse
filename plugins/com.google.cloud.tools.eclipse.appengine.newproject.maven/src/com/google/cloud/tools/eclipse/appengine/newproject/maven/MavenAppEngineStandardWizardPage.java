@@ -16,13 +16,16 @@
 
 package com.google.cloud.tools.eclipse.appengine.newproject.maven;
 
+import com.google.cloud.tools.eclipse.appengine.libraries.model.Library;
 import com.google.cloud.tools.eclipse.appengine.newproject.JavaPackageValidator;
 import com.google.cloud.tools.eclipse.appengine.ui.AppEngineImages;
+import com.google.cloud.tools.eclipse.appengine.ui.AppEngineLibrariesSelectorGroup;
 import com.google.cloud.tools.eclipse.usagetracker.AnalyticsEvents;
 import com.google.cloud.tools.eclipse.usagetracker.AnalyticsPingManager;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.CharMatcher;
-
+import java.text.MessageFormat;
+import java.util.List;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IStatus;
@@ -46,8 +49,6 @@ import org.eclipse.swt.widgets.Group;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Text;
 
-import java.text.MessageFormat;
-
 /**
  * UI to collect all information necessary to create a new Maven-based App Engine Standard Java
  * project.
@@ -63,8 +64,16 @@ public class MavenAppEngineStandardWizardPage extends WizardPage {
   private Text artifactIdField;
   private Text versionField;
   @VisibleForTesting Text javaPackageField;
+  private AppEngineLibrariesSelectorGroup appEngineLibrariesSelectorGroup;
 
   private boolean canFlipPage;
+
+  /** True if we should auto-generate the javaPackageField from the provided groupId */
+  @VisibleForTesting
+  boolean autoGeneratePackageName = true;
+
+  /** True if we're programmatically setting javaPackageField with an auto-generated value */
+  private boolean javaPackageProgrammaticUpdate = false;
 
   public MavenAppEngineStandardWizardPage() {
     super("basicNewProjectPage"); //$NON-NLS-1$
@@ -84,12 +93,12 @@ public class MavenAppEngineStandardWizardPage extends WizardPage {
 
     Composite container = new Composite(parent, SWT.NONE);
     GridLayoutFactory.swtDefaults().numColumns(2).applyTo(container);
+    setControl(container);
 
     createLocationArea(container);
     createMavenCoordinatesArea(container);
     createAppEngineProjectDetailsArea(container);
-
-    setControl(container);
+    appEngineLibrariesSelectorGroup = new AppEngineLibrariesSelectorGroup(container);
 
     Dialog.applyDialogFont(container);
   }
@@ -151,7 +160,7 @@ public class MavenAppEngineStandardWizardPage extends WizardPage {
     groupIdField = new Text(mavenCoordinatesGroup, SWT.BORDER);
     GridDataFactory.defaultsFor(groupIdField).align(SWT.FILL, SWT.CENTER).applyTo(groupIdField);
     groupIdField.addModifyListener(pageValidator);
-    groupIdField.addVerifyListener(new AutoPackageNameSetterOnGroupIdChange());
+    groupIdField.addModifyListener(new AutoPackageNameSetterOnGroupIdChange());
 
     Label artifactIdLabel = new Label(mavenCoordinatesGroup, SWT.NONE);
     artifactIdLabel.setText(Messages.getString("ARTIFACT_ID")); //$NON-NLS-1$
@@ -180,6 +189,16 @@ public class MavenAppEngineStandardWizardPage extends WizardPage {
     javaPackagePosition.horizontalSpan = 2;
     javaPackageField.setLayoutData(javaPackagePosition);
     javaPackageField.addModifyListener(pageValidator);
+    javaPackageField.addVerifyListener(new VerifyListener() {
+
+      @Override
+      public void verifyText(VerifyEvent event) {
+        // if the user ever changes the package name field, then we never auto-generate again
+        if (!javaPackageProgrammaticUpdate) {
+          autoGeneratePackageName = false;
+        }
+      }
+    });
   }
 
   protected void openLocationDialog() {
@@ -230,6 +249,16 @@ public class MavenAppEngineStandardWizardPage extends WizardPage {
     }
 
     return true;
+  }
+
+  public List<Library> getSelectedLibraries() {
+    return appEngineLibrariesSelectorGroup.getSelectedLibraries();
+  }
+
+  @Override
+  public void dispose() {
+    appEngineLibrariesSelectorGroup.dispose();
+    super.dispose();
   }
 
   /**
@@ -330,34 +359,30 @@ public class MavenAppEngineStandardWizardPage extends WizardPage {
   }
 
   /**
-   * Auto-fills {@link #javaPackageField} as Group ID when
-   * 1) {@link #javaPackageField} is empty; or
-   * 2) the field matches previous auto-fill before ID modification.
+   * Auto-fills {@link #javaPackageField} from the Group ID if the user has not explicitly chosen a
+   * package name.
    */
-  private final class AutoPackageNameSetterOnGroupIdChange implements VerifyListener {
-
-    private String previousSuggestion = "";
+  private final class AutoPackageNameSetterOnGroupIdChange implements ModifyListener {
 
     @Override
-    public void verifyText(VerifyEvent event) {
-      String groupId = groupIdField.getText();
-      // Below explains how to get text after modification:
-      // http://stackoverflow.com/questions/32872249/get-text-of-swt-text-component-before-modification
-      String newGroupId =
-          groupId.substring(0, event.start) + event.text + groupId.substring(event.end);
-
+    public void modifyText(ModifyEvent event) {
       // getGroupId() trims whitespace, so we do the same to sync with the dialog validation error.
-      if (MavenCoordinatesValidator.validateGroupId(newGroupId.trim())) {
-        String newSuggestion = suggestPackageName(newGroupId);
+      String groupId = groupIdField.getText().trim();
+
+      if (MavenCoordinatesValidator.validateGroupId(groupId)) {
+        String newSuggestion = suggestPackageName(groupId);
         updatePackageField(newSuggestion);
-        previousSuggestion = newSuggestion;
+      } else if (groupId.isEmpty()) {
+        updatePackageField("");
       }
     }
+  }
 
-    private void updatePackageField(String newSuggestion) {
-      if (getPackageName().isEmpty() || getPackageName().equals(previousSuggestion)) {
-        javaPackageField.setText(newSuggestion);
-      }
+  private void updatePackageField(String newSuggestion) {
+    if (autoGeneratePackageName) {
+      javaPackageProgrammaticUpdate = true;
+      javaPackageField.setText(newSuggestion);
+      javaPackageProgrammaticUpdate = false;
     }
   }
 
