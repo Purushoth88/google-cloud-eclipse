@@ -28,8 +28,6 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.ScrolledComposite;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
-import org.eclipse.swt.widgets.Event;
-import org.eclipse.swt.widgets.Listener;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.dialogs.PropertyPage;
 import org.eclipse.wst.common.project.facet.core.IFacetedProject;
@@ -49,7 +47,7 @@ import com.google.cloud.tools.eclipse.util.AdapterUtil;
 public class DeployPropertyPage extends PropertyPage {
 
   private DeployPreferencesPanel content;
-  private boolean doesProjectHaveAppEngineFacet;
+  private boolean canSetMessage;
   private boolean isStandardPanel;
   private IFacetedProject facetedProject = null;
   private String invalidFacetConfigErrorMessage = "";
@@ -131,12 +129,7 @@ public class DeployPropertyPage extends PropertyPage {
 
   @Override
   public void setErrorMessage(String newMessage) {
-    if (newMessage != null) {
-      System.out.println("newMessage == " + newMessage);
-    } else {
-      System.out.println("newMessage == null");
-    }
-    if (!doesProjectHaveAppEngineFacet) {
+    if (!canSetMessage) {
       return;
     }
 
@@ -148,7 +141,7 @@ public class DeployPropertyPage extends PropertyPage {
 
   @Override
   public void setMessage(String newMessage, int newType) {
-    if (!doesProjectHaveAppEngineFacet) {
+    if (!canSetMessage) {
       return;
     }
 
@@ -182,7 +175,7 @@ public class DeployPropertyPage extends PropertyPage {
   }
 
   /**
-   * Check to see if the project associated with this Property dialog,
+   * Checks to see if the project associated with this Property dialog,
    * still has an App Engine facet. If it does, do nothing. If it doesn't
    * display appropriate error message.
    */
@@ -204,11 +197,11 @@ public class DeployPropertyPage extends PropertyPage {
 
   private void updatePageBasedOnFacetConfig(boolean hasCorrectFacetConfiguration) {
     if (hasCorrectFacetConfiguration) {
-      doesProjectHaveAppEngineFacet = true;
+      canSetMessage = true;
       setErrorMessage(null);
     } else {
       setErrorMessage(invalidFacetConfigErrorMessage);
-      doesProjectHaveAppEngineFacet = false;
+      canSetMessage = false;
     }
     
   }
