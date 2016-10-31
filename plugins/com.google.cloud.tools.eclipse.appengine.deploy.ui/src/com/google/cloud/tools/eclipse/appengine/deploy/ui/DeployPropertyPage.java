@@ -184,7 +184,7 @@ public class DeployPropertyPage extends PropertyPage {
   /**
    * Check to see if the project associated with this Property dialog,
    * still has an App Engine facet. If it does, do nothing. If it doesn't
-   * display appropriate error message and don't allow the preferences to be saved.
+   * display appropriate error message.
    */
   private void evaluateFacetConfiguration() {
     if (isStandardPanel && !AppEngineStandardFacet.hasAppEngineFacet(facetedProject)) {
@@ -206,10 +206,8 @@ public class DeployPropertyPage extends PropertyPage {
     if (hasCorrectFacetConfiguration) {
       doesProjectHaveAppEngineFacet = true;
       setErrorMessage(null);
-      content.setAllowSave(true);
     } else {
       setErrorMessage(invalidFacetConfigErrorMessage);
-      content.setAllowSave(false);
       doesProjectHaveAppEngineFacet = false;
     }
     

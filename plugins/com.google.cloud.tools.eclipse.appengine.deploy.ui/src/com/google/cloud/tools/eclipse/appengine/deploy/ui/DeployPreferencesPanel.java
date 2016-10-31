@@ -23,7 +23,6 @@ import org.eclipse.ui.forms.widgets.FormToolkit;
 
 abstract class DeployPreferencesPanel extends Composite {
   private FormToolkit formToolkit;
-  private boolean allowSave = true;
 
   DeployPreferencesPanel(Composite parent, int style) {
     super(parent, style);
@@ -47,14 +46,6 @@ abstract class DeployPreferencesPanel extends Composite {
 
   protected FormToolkit getFormToolkit() {
     return formToolkit;
-  }
-
-  public boolean getAllowSave() {
-    return allowSave;
-  }
-
-  public void setAllowSave(boolean allowSave) {
-    this.allowSave = allowSave;
   }
 
   private void initializeFormToolkit() {
