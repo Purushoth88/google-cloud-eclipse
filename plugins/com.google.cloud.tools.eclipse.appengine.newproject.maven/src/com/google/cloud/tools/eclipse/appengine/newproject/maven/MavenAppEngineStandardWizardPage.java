@@ -27,6 +27,7 @@ import com.google.common.base.CharMatcher;
 import java.text.MessageFormat;
 import java.util.List;
 import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
 import java.nio.file.Paths;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.IPath;
@@ -240,17 +241,23 @@ public class MavenAppEngineStandardWizardPage extends WizardPage {
         setMessage(Messages.getString("PROVIDE_LOCATION"), INFORMATION); //$NON-NLS-1$
         return false;
       } else {
-        java.nio.file.Path path = Paths.get(location);
-        if (Files.exists(path) && !Files.isDirectory(path)) {
-          String message = MessageFormat.format(Messages.getString("FILE_LOCATION"), location); //$NON-NLS-1$
+        try {
+          java.nio.file.Path path = Paths.get(location);
+          if (Files.exists(path) && !Files.isDirectory(path)) {
+            String message = MessageFormat.format(Messages.getString("FILE_LOCATION"), location); //$NON-NLS-1$
+            setMessage(message, INFORMATION);
+            return false;              
+          } else if (Files.exists(path) && !Files.isWritable(path)) {
+            String message = MessageFormat.format(Messages.getString("NONWRITABLE"), location); //$NON-NLS-1$
+            setMessage(message, INFORMATION);
+            return false;               
+          }
+          // TODO check if a directory that doesn't exist can be created
+        } catch (InvalidPathException ex) {
+          String message = MessageFormat.format(Messages.getString("INVALID_PATH"), location); //$NON-NLS-1$
           setMessage(message, INFORMATION);
-          return false;              
-        } else if (Files.exists(path) && !Files.isWritable(path)) {
-          String message = MessageFormat.format(Messages.getString("NONWRITABLE"), location); //$NON-NLS-1$
-          setMessage(message, INFORMATION);
-          return false;               
+          return false;  
         }
-        // TODO check if a directory that doesn't exist can be created
 
       }
     } 
