@@ -32,13 +32,6 @@
       <delegate class="com.google.cloud.tools.eclipse.appengine.facets.StandardFacetUninstallDelegate"/>
     </action>
   </extension>
-  
-  <extension point="org.eclipse.wst.common.project.facet.core.runtimes">
-    <supported>
-      <runtime-component any="true" />
-      <facet id="com.google.cloud.tools.eclipse.appengine.facets.standard" />
-    </supported>
-  </extension>
 
   <extension point="org.eclipse.wst.common.project.facet.core.listeners">
     <listener
