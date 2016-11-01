@@ -243,11 +243,11 @@ public class MavenAppEngineStandardWizardPage extends WizardPage {
         java.nio.file.Path path = Paths.get(location);
         if (Files.exists(path) && !Files.isDirectory(path)) {
           String message = MessageFormat.format(Messages.getString("FILE_LOCATION"), location); //$NON-NLS-1$
-              setMessage(message, INFORMATION);
+          setMessage(message, INFORMATION);
           return false;              
         } else if (Files.exists(path) && !Files.isWritable(path)) {
           String message = MessageFormat.format(Messages.getString("NONWRITABLE"), location); //$NON-NLS-1$
-              setMessage(message, INFORMATION);
+          setMessage(message, INFORMATION);
           return false;               
         }
         // TODO check if a directory that doesn't exist can be created
