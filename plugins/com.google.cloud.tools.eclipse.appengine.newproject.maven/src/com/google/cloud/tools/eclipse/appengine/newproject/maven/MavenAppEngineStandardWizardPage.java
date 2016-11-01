@@ -234,33 +234,11 @@ public class MavenAppEngineStandardWizardPage extends WizardPage {
     setErrorMessage(null);
 
     // order here should match order of the UI fields
-
     if (!useDefaults()) {
-      String location = locationField.getText().trim();
-      if (location.isEmpty()) {
-        setMessage(Messages.getString("PROVIDE_LOCATION"), INFORMATION); //$NON-NLS-1$
+      if (!validateLocation(locationField.getText().trim())) {
         return false;
-      } else {
-        try {
-          java.nio.file.Path path = Paths.get(location);
-          if (Files.exists(path) && !Files.isDirectory(path)) {
-            String message = MessageFormat.format(Messages.getString("FILE_LOCATION"), location); //$NON-NLS-1$
-            setMessage(message, INFORMATION);
-            return false;              
-          } else if (Files.exists(path) && !Files.isWritable(path)) {
-            String message = MessageFormat.format(Messages.getString("NONWRITABLE"), location); //$NON-NLS-1$
-            setMessage(message, INFORMATION);
-            return false;               
-          }
-          // TODO check if a directory that doesn't exist can be created
-        } catch (InvalidPathException ex) {
-          String message = MessageFormat.format(Messages.getString("INVALID_PATH"), location); //$NON-NLS-1$
-          setMessage(message, INFORMATION);
-          return false;  
-        }
-
       }
-    } 
+    }
 
     if (!validateMavenSettings()) {
       return false;
@@ -272,6 +250,38 @@ public class MavenAppEngineStandardWizardPage extends WizardPage {
       return false;
     }
 
+    return true;
+  }
+
+  private boolean validateLocation(String location) {
+    if (location.isEmpty()) {
+      setMessage(Messages.getString("PROVIDE_LOCATION"), INFORMATION); //$NON-NLS-1$
+      return false;
+    } else {
+      try {
+        java.nio.file.Path path = Paths.get(location);
+        do {
+          if (Files.exists(path)) {
+            if (!Files.isDirectory(path)) {
+              String message = MessageFormat.format(Messages.getString("FILE_LOCATION"), path.toString()); //$NON-NLS-1$
+              setMessage(message, WARNING);
+              return false;              
+            } else if (!Files.isWritable(path)) {
+              String message = MessageFormat.format(Messages.getString("NONWRITABLE"), location); //$NON-NLS-1$
+              setMessage(message, WARNING);
+              return false;
+            } else { // writable directory
+              return true;
+            }
+          }
+          path = path.getParent();
+        } while (path != null);
+      } catch (InvalidPathException ex) {
+        String message = MessageFormat.format(Messages.getString("INVALID_PATH"), location); //$NON-NLS-1$
+        setMessage(message, ERROR);
+        return false;  
+      }
+    }
     return true;
   }
 
