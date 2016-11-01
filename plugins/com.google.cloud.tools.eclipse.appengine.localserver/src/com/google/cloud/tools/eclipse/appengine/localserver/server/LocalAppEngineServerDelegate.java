@@ -16,14 +16,17 @@
 
 package com.google.cloud.tools.eclipse.appengine.localserver.server;
 
+import com.google.cloud.tools.eclipse.appengine.facets.AppEngineStandardFacet;
+import com.google.cloud.tools.eclipse.appengine.localserver.Messages;
+import com.google.cloud.tools.eclipse.util.status.StatusUtil;
 import java.util.ArrayList;
 import java.util.List;
-
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.jst.server.core.IWebModule;
+import org.eclipse.wst.common.project.facet.core.ProjectFacetsManager;
 import org.eclipse.wst.server.core.IModule;
 import org.eclipse.wst.server.core.IModuleType;
 import org.eclipse.wst.server.core.IServer;
@@ -32,8 +35,8 @@ import org.eclipse.wst.server.core.model.ServerDelegate;
 
 @SuppressWarnings("restriction") // For FacetUtil
 public class LocalAppEngineServerDelegate extends ServerDelegate {
-  private static final String SERVLET_MODULE_FACET = "jst.web";
-  private static final String ATTR_APP_ENGINE_SERVER_MODULES = "app-engine-server-modules-list";
+  private static final String SERVLET_MODULE_FACET = "jst.web"; //$NON-NLS-1$
+  private static final String ATTR_APP_ENGINE_SERVER_MODULES = "app-engine-server-modules-list"; //$NON-NLS-1$
 
   /**
    * Returns a {@link LocalAppEngineServerDelegate} instance associated with the
@@ -65,10 +68,25 @@ public class LocalAppEngineServerDelegate extends ServerDelegate {
           if (status != null && !status.isOK()) {
             return status;
           }
+          status = hasAppEngineStandardFacet(module);
+          if (status != null && !status.isOK()) {
+            return status;
+          }
         }
       }
     }
     return Status.OK_STATUS;
+  }
+
+  private IStatus hasAppEngineStandardFacet(IModule module) {
+    try {
+      if (AppEngineStandardFacet.hasAppEngineFacet(ProjectFacetsManager.create(module.getProject()))) {
+        return Status.OK_STATUS;
+      }
+    } catch (CoreException ex) {
+      return StatusUtil.error(this, Messages.FACETED_PROJECT_CREATION_FAILED, ex);
+    }
+    return StatusUtil.error(this, Messages.GAE_STANDARD_FACET_MISSING);
   }
 
   /**

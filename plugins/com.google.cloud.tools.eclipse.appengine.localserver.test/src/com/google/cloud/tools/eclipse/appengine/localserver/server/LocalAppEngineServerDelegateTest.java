@@ -18,12 +18,22 @@ package com.google.cloud.tools.eclipse.appengine.localserver.server;
 
 import static org.mockito.Mockito.when;
 
+import com.google.cloud.tools.eclipse.appengine.facets.AppEngineStandardFacet;
+import com.google.common.collect.Lists;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.Status;
+import org.eclipse.jst.common.project.facet.core.JavaFacet;
+import org.eclipse.jst.j2ee.web.project.facet.WebFacetUtils;
 import org.eclipse.jst.server.core.IWebModule;
 import org.eclipse.wst.server.core.IModule;
+import org.eclipse.wst.server.core.IRuntime;
+import org.eclipse.wst.server.core.IRuntimeWorkingCopy;
+import org.eclipse.wst.server.core.IServer;
+import org.eclipse.wst.server.core.IServerWorkingCopy;
+import org.eclipse.wst.server.core.ServerCore;
 import org.eclipse.wst.server.core.internal.ModuleType;
 import org.junit.Assert;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -34,14 +44,37 @@ import org.mockito.runners.MockitoJUnitRunner;
 public class LocalAppEngineServerDelegateTest {
 
   private LocalAppEngineServerDelegate delegate = new LocalAppEngineServerDelegate();
-  private @Mock IModule module1;
-  private @Mock IModule module2;
-  private @Mock IWebModule webModule;
+  @Mock private IModule module1;
+  @Mock private IModule module2;
+  @Mock private IWebModule webModule;
+  @Rule public TestProject dynamicWebProject = new TestProject(Lists.newArrayList(JavaFacet.VERSION_1_7,
+                                                                                  WebFacetUtils.WEB_25));
+  @Rule public TestProject appEngineStandardProject = new TestProject(Lists.newArrayList(JavaFacet.VERSION_1_7,
+                                                                                         WebFacetUtils.WEB_25,
+                                                                                         AppEngineStandardFacet.GAE_STANDARD));
 
   @Test
   public void testCanModifyModules() {
     IModule[] remove = new IModule[0];
     IModule[] add = new IModule[0];
+    Assert.assertEquals(Status.OK_STATUS, delegate.canModifyModules(add, remove));
+  }
+
+  @Test
+  public void testCanModifyModules_NoAppEngineStandardFacet() throws Exception {
+    delegate = getDelegatewithServer();
+    IModule[] remove = new IModule[0];
+    IModule[] add = new IModule[]{ module1 };
+    when(module1.getProject()).thenReturn(dynamicWebProject.getProject());
+    Assert.assertEquals(Status.ERROR, delegate.canModifyModules(add, remove).getSeverity());
+  }
+
+  @Test
+  public void testCanModifyModules_appEngineStandardFacet() throws Exception {
+    delegate = getDelegatewithServer();
+    IModule[] remove = new IModule[0];
+    IModule[] add = new IModule[]{ module1 };
+    when(module1.getProject()).thenReturn(appEngineStandardProject.getProject());
     Assert.assertEquals(Status.OK_STATUS, delegate.canModifyModules(add, remove));
   }
 
@@ -90,4 +123,16 @@ public class LocalAppEngineServerDelegateTest {
     Assert.assertEquals("module1", rootModules[0].getId());
   }
 
+  private LocalAppEngineServerDelegate getDelegatewithServer() throws Exception {
+    IServerWorkingCopy serverWorkingCopy =
+        ServerCore.findServerType("com.google.cloud.tools.eclipse.appengine.standard.server")
+          .createServer("testServer", null, null);
+    IRuntimeWorkingCopy runtimeWorkingCopy =
+        ServerCore.findRuntimeType("com.google.cloud.tools.eclipse.appengine.standard.runtime")
+          .createRuntime("testRuntime", null);
+    IRuntime runtime = runtimeWorkingCopy.save(true, null);
+    serverWorkingCopy.setRuntime(runtime);
+    IServer original = serverWorkingCopy.save(true, null);
+    return LocalAppEngineServerDelegate.getAppEngineServer(original);
+  }
 }

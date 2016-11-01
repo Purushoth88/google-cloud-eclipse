@@ -56,6 +56,7 @@ public class AppEngineStandardFacet {
   static final String DEFAULT_RUNTIME_NAME = "App Engine Standard";
   public static final String DEFAULT_APPENGINE_SDK_VERSION = "1.9.44";
   public static final String DEFAULT_GCLOUD_PLUGIN_VERSION = "2.0.9.130.v20161013";
+  public static final IProjectFacetVersion GAE_STANDARD = ProjectFacetsManager.getProjectFacet(ID).getVersion(VERSION);
 
   /**
    * Returns true if project has the App Engine Standard facet and false otherwise.
