@@ -89,7 +89,9 @@ public class LocalAppEngineServerDelegate extends ServerDelegate {
                                                                              module.getProject().getName()));
       }
     } catch (CoreException ex) {
-      return StatusUtil.error(LocalAppEngineServerDelegate.class, Messages.NOT_FACETED_PROJECT, ex);
+      return StatusUtil.error(LocalAppEngineServerDelegate.class,
+                              NLS.bind(Messages.NOT_FACETED_PROJECT, module.getProject().getName()),
+                              ex);
     }
   }
 
