@@ -27,9 +27,12 @@ import com.google.cloud.tools.appengine.cloudsdk.process.ProcessOutputLineListen
 import com.google.cloud.tools.appengine.cloudsdk.process.ProcessStartListener;
 import com.google.cloud.tools.eclipse.appengine.localserver.Activator;
 import com.google.cloud.tools.eclipse.sdk.ui.MessageConsoleWriterOutputLineListener;
+import com.google.cloud.tools.eclipse.util.io.SocketUtil;
+import com.google.common.annotations.VisibleForTesting;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -37,7 +40,6 @@ import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
-import org.eclipse.jdt.launching.SocketUtil;
 import org.eclipse.ui.console.MessageConsoleStream;
 import org.eclipse.wst.server.core.IModule;
 import org.eclipse.wst.server.core.IServer;
@@ -55,6 +57,7 @@ public class LocalAppEngineServerBehaviour extends ServerBehaviourDelegate
 
   public static final String SERVER_PORT_ATTRIBUTE_NAME = "appEngineDevServerPort";
   public static final int DEFAULT_SERVER_PORT = 8080;
+  public static final int DEFAULT_ADMIN_PORT = 8000;
 
   private static final Logger logger =
       Logger.getLogger(LocalAppEngineServerBehaviour.class.getName());
@@ -63,7 +66,9 @@ public class LocalAppEngineServerBehaviour extends ServerBehaviourDelegate
   private LocalAppEngineExitListener localAppEngineExitListener;
   private AppEngineDevServer devServer;
   private Process devProcess;
-  private int port = -1;
+
+  @VisibleForTesting int serverPort = -1;
+  @VisibleForTesting int adminPort = DEFAULT_ADMIN_PORT;
 
   private DevAppServerOutputListener serverOutputListener;
 
@@ -153,23 +158,63 @@ public class LocalAppEngineServerBehaviour extends ServerBehaviourDelegate
     return new Status(IStatus.ERROR, Activator.PLUGIN_ID, message);
   }
 
-  private int checkAndSetPort() throws CoreException {
-    port = getServer().getAttribute(SERVER_PORT_ATTRIBUTE_NAME, DEFAULT_SERVER_PORT);
-    if (port < 0 || port > 65535) {
-      throw new CoreException(newErrorStatus("Port must be between 0 and 65535."));
-    }
+  private void checkAndSetPorts() throws CoreException {
+    serverPort = getServer().getAttribute(SERVER_PORT_ATTRIBUTE_NAME, DEFAULT_SERVER_PORT);
 
-    if (port == 0) {
-      port = SocketUtil.findFreePort();
-      if (port == -1) {
-        throw new CoreException(newErrorStatus("Failed to find a free port."));
+    checkAndSetPorts(new PortProber() {
+      @Override
+      public boolean isPortInUse(int port) {
+        return org.eclipse.wst.server.core.util.SocketUtil.isPortInUse(adminPort);
       }
-    }
-    return port;
+      @Override
+      public List<Integer> findFreePorts(int portCounts) {
+        return SocketUtil.findFreePorts(portCounts);
+      }
+    });
   }
 
-  public int getPort() {
-    return port;
+  @VisibleForTesting
+  public interface PortProber {
+    boolean isPortInUse(int port);
+    List<Integer> findFreePorts(int portCounts);
+  }
+
+  @VisibleForTesting
+  void checkAndSetPorts(PortProber portProber)
+      throws CoreException {
+    if (serverPort < 0 || serverPort > 65535) {
+      throw new CoreException(newErrorStatus("Port must be between 0 and 65535."));
+    }
+    if (serverPort != 0 && portProber.isPortInUse(serverPort)) {
+      throw new CoreException(newErrorStatus("Port " + serverPort + " is in use."));
+    }
+
+    if (portProber.isPortInUse(adminPort)) {
+      adminPort = 0;
+    }
+
+    if (serverPort == 0 || adminPort == 0) {
+      LinkedList<Integer> ports = null;
+      if (serverPort == 0 && adminPort == 0) {
+        ports = new LinkedList<>(portProber.findFreePorts(2));
+      } else {
+        ports = new LinkedList<>(portProber.findFreePorts(1));
+      }
+
+      if (ports.isEmpty()) {
+        throw new CoreException(newErrorStatus("Failed to find a free port."));
+      }
+      if (serverPort == 0) {
+        serverPort = ports.removeFirst();
+      }
+      if (adminPort == 0) {
+        adminPort = ports.removeFirst();
+      }
+    }
+  }
+
+  public int getServerPort() {
+    return serverPort;
   }
 
   /**
@@ -179,7 +224,7 @@ public class LocalAppEngineServerBehaviour extends ServerBehaviourDelegate
    * @param console the stream (Eclipse console) to send development server process output to
    */
   void startDevServer(List<File> runnables, MessageConsoleStream console) throws CoreException {
-    checkAndSetPort();  // Must be called before setting the STARTING state.
+    checkAndSetPorts();  // Must be called before setting the STARTING state.
     setServerState(IServer.STATE_STARTING);
 
     // Create dev app server instance
@@ -190,7 +235,8 @@ public class LocalAppEngineServerBehaviour extends ServerBehaviourDelegate
     devServerRunConfiguration.setAutomaticRestart(false);
     devServerRunConfiguration.setAppYamls(runnables);
     devServerRunConfiguration.setHost(getServer().getHost());
-    devServerRunConfiguration.setPort(port);
+    devServerRunConfiguration.setPort(serverPort);
+    devServerRunConfiguration.setAdminPort(adminPort);
 
     // FIXME: workaround bug when running on a Java8 JVM
     // https://github.com/GoogleCloudPlatform/gcloud-eclipse-tools/issues/181
@@ -214,7 +260,7 @@ public class LocalAppEngineServerBehaviour extends ServerBehaviourDelegate
    */
   void startDebugDevServer(List<File> runnables, MessageConsoleStream console, int debugPort)
       throws CoreException {
-    checkAndSetPort();  // Must be called before setting the STARTING state.
+    checkAndSetPorts();  // Must be called before setting the STARTING state.
     setServerState(IServer.STATE_STARTING);
 
     // Create dev app server instance
@@ -225,7 +271,8 @@ public class LocalAppEngineServerBehaviour extends ServerBehaviourDelegate
     devServerRunConfiguration.setAutomaticRestart(false);
     devServerRunConfiguration.setAppYamls(runnables);
     devServerRunConfiguration.setHost(getServer().getHost());
-    devServerRunConfiguration.setPort(port);
+    devServerRunConfiguration.setPort(serverPort);
+    devServerRunConfiguration.setAdminPort(adminPort);
 
     // todo: make this a configurable option, but default to
     // 1 instance to simplify debugging

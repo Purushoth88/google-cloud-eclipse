@@ -202,7 +202,7 @@ public class LocalAppEngineServerLaunchConfigurationDelegate
     LocalAppEngineServerBehaviour serverBehaviour = (LocalAppEngineServerBehaviour)
         server.loadAdapter(LocalAppEngineServerBehaviour.class, null /* monitor */);
 
-    return "http://" + server.getHost() + ":" + serverBehaviour.getPort();
+    return "http://" + server.getHost() + ":" + serverBehaviour.getServerPort();
   }
 
 
