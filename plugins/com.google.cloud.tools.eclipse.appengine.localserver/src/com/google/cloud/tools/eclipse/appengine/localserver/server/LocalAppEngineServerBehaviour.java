@@ -164,8 +164,9 @@ public class LocalAppEngineServerBehaviour extends ServerBehaviourDelegate
     checkAndSetPorts(new PortProber() {
       @Override
       public boolean isPortInUse(int port) {
-        return org.eclipse.wst.server.core.util.SocketUtil.isPortInUse(adminPort);
+        return org.eclipse.wst.server.core.util.SocketUtil.isPortInUse(port);
       }
+
       @Override
       public List<Integer> findFreePorts(int portCounts) {
         return SocketUtil.findFreePorts(portCounts);
