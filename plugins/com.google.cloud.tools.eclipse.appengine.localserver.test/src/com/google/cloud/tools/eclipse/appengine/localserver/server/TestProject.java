@@ -84,26 +84,27 @@ public final class TestProject extends ExternalResource {
     project.create(newProjectDescription, null);
     project.open(null);
     javaProject = JavaCore.create(project);
-    if (!Strings.isNullOrEmpty(containerPath)) {
-      addContainerPathToRawClasspath();
-    }
-    if (!projectFacetVersions.isEmpty()) {
-      addFacets();
-    }
+
+    addContainerPathToRawClasspath();
+    addFacets();
   }
 
   private void addContainerPathToRawClasspath() throws JavaModelException {
-    IClasspathEntry[] rawClasspath = javaProject.getRawClasspath();
-    IClasspathEntry[] newRawClasspath = new IClasspathEntry[rawClasspath.length + 1];
-    System.arraycopy(rawClasspath, 0, newRawClasspath, 0, rawClasspath.length);
-    newRawClasspath[newRawClasspath.length - 1] = JavaCore.newContainerEntry(new Path(containerPath));
-    javaProject.setRawClasspath(newRawClasspath, null);
+    if (!Strings.isNullOrEmpty(containerPath)) {
+      IClasspathEntry[] rawClasspath = javaProject.getRawClasspath();
+      IClasspathEntry[] newRawClasspath = new IClasspathEntry[rawClasspath.length + 1];
+      System.arraycopy(rawClasspath, 0, newRawClasspath, 0, rawClasspath.length);
+      newRawClasspath[newRawClasspath.length - 1] = JavaCore.newContainerEntry(new Path(containerPath));
+      javaProject.setRawClasspath(newRawClasspath, null);
+    }
   }
 
   private void addFacets() throws CoreException {
-    IFacetedProject facetedProject = ProjectFacetsManager.create(getProject());
-    for (IProjectFacetVersion projectFacetVersion : projectFacetVersions) {
-      facetedProject.installProjectFacet(projectFacetVersion, null, null);
+    if (!projectFacetVersions.isEmpty()) {
+      IFacetedProject facetedProject = ProjectFacetsManager.create(getProject());
+      for (IProjectFacetVersion projectFacetVersion : projectFacetVersions) {
+        facetedProject.installProjectFacet(projectFacetVersion, null, null);
+      }
     }
   }
 }

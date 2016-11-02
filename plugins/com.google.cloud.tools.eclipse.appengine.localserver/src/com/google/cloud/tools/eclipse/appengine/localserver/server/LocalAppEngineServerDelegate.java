@@ -85,7 +85,8 @@ public class LocalAppEngineServerDelegate extends ServerDelegate {
         return Status.OK_STATUS;
       } else {
         return StatusUtil.error(LocalAppEngineServerDelegate.class, NLS.bind(Messages.GAE_STANDARD_FACET_MISSING,
-                                                                             module.getName()));
+                                                                             module.getName(),
+                                                                             module.getProject().getName()));
       }
     } catch (CoreException ex) {
       return StatusUtil.error(LocalAppEngineServerDelegate.class, Messages.NOT_FACETED_PROJECT, ex);
