@@ -26,6 +26,7 @@ import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.jst.server.core.IWebModule;
+import org.eclipse.osgi.util.NLS;
 import org.eclipse.wst.common.project.facet.core.ProjectFacetsManager;
 import org.eclipse.wst.server.core.IModule;
 import org.eclipse.wst.server.core.IModuleType;
@@ -64,13 +65,13 @@ public class LocalAppEngineServerDelegate extends ServerDelegate {
     if (add != null) {
       for (IModule module : add) {
         if (module.getProject() != null) {
-          IStatus status = FacetUtil.verifyFacets(module.getProject(), getServer());
-          if (status != null && !status.isOK()) {
-            return status;
+          IStatus supportedFacets = FacetUtil.verifyFacets(module.getProject(), getServer());
+          if (supportedFacets != null && !supportedFacets.isOK()) {
+            return supportedFacets;
           }
-          status = hasAppEngineStandardFacet(module);
-          if (status != null && !status.isOK()) {
-            return status;
+          IStatus appEngineStandardFacetPresent = hasAppEngineStandardFacet(module);
+          if (appEngineStandardFacetPresent != null && !appEngineStandardFacetPresent.isOK()) {
+            return appEngineStandardFacetPresent;
           }
         }
       }
@@ -78,15 +79,17 @@ public class LocalAppEngineServerDelegate extends ServerDelegate {
     return Status.OK_STATUS;
   }
 
-  private IStatus hasAppEngineStandardFacet(IModule module) {
+  private static IStatus hasAppEngineStandardFacet(IModule module) {
     try {
       if (AppEngineStandardFacet.hasAppEngineFacet(ProjectFacetsManager.create(module.getProject()))) {
         return Status.OK_STATUS;
+      } else {
+        return StatusUtil.error(LocalAppEngineServerDelegate.class, NLS.bind(Messages.GAE_STANDARD_FACET_MISSING,
+                                                                             module.getName()));
       }
     } catch (CoreException ex) {
-      return StatusUtil.error(this, Messages.FACETED_PROJECT_CREATION_FAILED, ex);
+      return StatusUtil.error(LocalAppEngineServerDelegate.class, Messages.NOT_FACETED_PROJECT, ex);
     }
-    return StatusUtil.error(this, Messages.GAE_STANDARD_FACET_MISSING);
   }
 
   /**

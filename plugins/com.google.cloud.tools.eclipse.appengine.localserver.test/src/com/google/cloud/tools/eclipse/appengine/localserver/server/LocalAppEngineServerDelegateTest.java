@@ -49,9 +49,10 @@ public class LocalAppEngineServerDelegateTest {
   @Mock private IWebModule webModule;
   @Rule public TestProject dynamicWebProject = new TestProject(Lists.newArrayList(JavaFacet.VERSION_1_7,
                                                                                   WebFacetUtils.WEB_25));
-  @Rule public TestProject appEngineStandardProject = new TestProject(Lists.newArrayList(JavaFacet.VERSION_1_7,
-                                                                                         WebFacetUtils.WEB_25,
-                                                                                         AppEngineStandardFacet.GAE_STANDARD));
+  @Rule public TestProject appEngineStandardProject =
+      new TestProject(Lists.newArrayList(JavaFacet.VERSION_1_7,
+                                         WebFacetUtils.WEB_25,
+                                         AppEngineStandardFacet.APPENGINE_STANDARD_VERSION));
 
   @Test
   public void testCanModifyModules() {
@@ -61,7 +62,7 @@ public class LocalAppEngineServerDelegateTest {
   }
 
   @Test
-  public void testCanModifyModules_NoAppEngineStandardFacet() throws Exception {
+  public void testCanModifyModules_NoAppEngineStandardFacet() throws CoreException  {
     delegate = getDelegatewithServer();
     IModule[] remove = new IModule[0];
     IModule[] add = new IModule[]{ module1 };
@@ -70,7 +71,7 @@ public class LocalAppEngineServerDelegateTest {
   }
 
   @Test
-  public void testCanModifyModules_appEngineStandardFacet() throws Exception {
+  public void testCanModifyModules_appEngineStandardFacet() throws CoreException {
     delegate = getDelegatewithServer();
     IModule[] remove = new IModule[0];
     IModule[] add = new IModule[]{ module1 };
@@ -123,7 +124,7 @@ public class LocalAppEngineServerDelegateTest {
     Assert.assertEquals("module1", rootModules[0].getId());
   }
 
-  private LocalAppEngineServerDelegate getDelegatewithServer() throws Exception {
+  private LocalAppEngineServerDelegate getDelegatewithServer() throws CoreException {
     IServerWorkingCopy serverWorkingCopy =
         ServerCore.findServerType("com.google.cloud.tools.eclipse.appengine.standard.server")
           .createServer("testServer", null, null);

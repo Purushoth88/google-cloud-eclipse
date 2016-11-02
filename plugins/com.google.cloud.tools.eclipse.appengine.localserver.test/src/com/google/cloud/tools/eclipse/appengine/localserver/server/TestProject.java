@@ -87,7 +87,7 @@ public final class TestProject extends ExternalResource {
     if (!Strings.isNullOrEmpty(containerPath)) {
       addContainerPathToRawClasspath();
     }
-    if (projectFacetVersions != null) {
+    if (!projectFacetVersions.isEmpty()) {
       addFacets();
     }
   }
