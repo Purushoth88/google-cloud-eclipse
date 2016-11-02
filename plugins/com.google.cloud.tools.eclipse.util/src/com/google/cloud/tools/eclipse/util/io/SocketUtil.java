@@ -41,7 +41,7 @@ public class SocketUtil {
   }
 
   @VisibleForTesting
-  interface ServerSocketCreator {
+  public interface ServerSocketCreator {
     ServerSocket newServerSocket() throws IOException;
   }
 
