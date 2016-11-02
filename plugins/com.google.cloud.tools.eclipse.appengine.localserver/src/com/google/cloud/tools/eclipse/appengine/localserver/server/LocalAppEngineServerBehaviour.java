@@ -88,8 +88,8 @@ public class LocalAppEngineServerBehaviour extends ServerBehaviourDelegate
     // then try to shut it down nicely
     if (devServer != null && (!force || serverState != IServer.STATE_STOPPING)) {
       setServerState(IServer.STATE_STOPPING);
-      // TODO: when available configure the host and port specified in the server
       DefaultStopConfiguration stopConfig = new DefaultStopConfiguration();
+      stopConfig.setAdminPort(adminPort);
       try {
         devServer.stop(stopConfig);
       } catch (AppEngineException ex) {
