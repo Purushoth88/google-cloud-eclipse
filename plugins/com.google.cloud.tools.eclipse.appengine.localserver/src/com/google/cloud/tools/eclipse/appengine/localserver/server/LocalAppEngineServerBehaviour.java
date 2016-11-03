@@ -174,8 +174,7 @@ public class LocalAppEngineServerBehaviour extends ServerBehaviourDelegate
   }
 
   @VisibleForTesting
-  void checkAndSetPorts(PortProber portProber)
-      throws CoreException {
+  void checkAndSetPorts(PortProber portProber) throws CoreException {
     if (serverPort < 0 || serverPort > 65535) {
       throw new CoreException(newErrorStatus("Port must be between 0 and 65535."));
     }
