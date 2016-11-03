@@ -235,7 +235,7 @@ public class MavenAppEngineStandardWizardPage extends WizardPage {
 
     // order here should match order of the UI fields
     if (!useDefaults()) {
-      if (!validateLocation(locationField.getText().trim())) {
+      if (!validateLocation(locationField.getText().trim(), this)) {
         return false;
       }
     }
@@ -253,9 +253,10 @@ public class MavenAppEngineStandardWizardPage extends WizardPage {
     return true;
   }
 
-  private boolean validateLocation(String location) {
+  @VisibleForTesting
+  static boolean validateLocation(String location, WizardPage page) {
     if (location.isEmpty()) {
-      setMessage(Messages.getString("PROVIDE_LOCATION"), INFORMATION); //$NON-NLS-1$
+      page.setMessage(Messages.getString("PROVIDE_LOCATION"), INFORMATION); //$NON-NLS-1$
       return false;
     } else {
       try {
@@ -264,11 +265,11 @@ public class MavenAppEngineStandardWizardPage extends WizardPage {
           if (Files.exists(path)) {
             if (!Files.isDirectory(path)) {
               String message = MessageFormat.format(Messages.getString("FILE_LOCATION"), path.toString()); //$NON-NLS-1$
-              setMessage(message, WARNING);
+              page.setMessage(message, WARNING);
               return false;              
             } else if (!Files.isWritable(path)) {
               String message = MessageFormat.format(Messages.getString("NONWRITABLE"), location); //$NON-NLS-1$
-              setMessage(message, WARNING);
+              page.setMessage(message, WARNING);
               return false;
             } else { // writable directory
               return true;
@@ -278,7 +279,7 @@ public class MavenAppEngineStandardWizardPage extends WizardPage {
         } while (path != null);
       } catch (InvalidPathException ex) {
         String message = MessageFormat.format(Messages.getString("INVALID_PATH"), location); //$NON-NLS-1$
-        setMessage(message, ERROR);
+        page.setMessage(message, ERROR);
         return false;  
       }
     }
