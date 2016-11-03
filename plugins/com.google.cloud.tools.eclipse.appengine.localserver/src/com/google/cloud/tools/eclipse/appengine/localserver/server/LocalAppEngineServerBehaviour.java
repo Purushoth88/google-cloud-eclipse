@@ -27,15 +27,15 @@ import com.google.cloud.tools.appengine.cloudsdk.process.ProcessOutputLineListen
 import com.google.cloud.tools.appengine.cloudsdk.process.ProcessStartListener;
 import com.google.cloud.tools.eclipse.appengine.localserver.Activator;
 import com.google.cloud.tools.eclipse.sdk.ui.MessageConsoleWriterOutputLineListener;
-import com.google.cloud.tools.eclipse.util.io.SocketUtil;
 import com.google.common.annotations.VisibleForTesting;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IStatus;
@@ -160,16 +160,10 @@ public class LocalAppEngineServerBehaviour extends ServerBehaviourDelegate
 
   private void checkAndSetPorts() throws CoreException {
     serverPort = getServer().getAttribute(SERVER_PORT_ATTRIBUTE_NAME, DEFAULT_SERVER_PORT);
-
     checkAndSetPorts(new PortProber() {
       @Override
       public boolean isPortInUse(int port) {
         return org.eclipse.wst.server.core.util.SocketUtil.isPortInUse(port);
-      }
-
-      @Override
-      public List<Integer> findFreePorts(int portCounts) {
-        return SocketUtil.findFreePorts(portCounts);
       }
     });
   }
@@ -177,7 +171,6 @@ public class LocalAppEngineServerBehaviour extends ServerBehaviourDelegate
   @VisibleForTesting
   public interface PortProber {
     boolean isPortInUse(int port);
-    List<Integer> findFreePorts(int portCounts);
   }
 
   @VisibleForTesting
@@ -192,25 +185,6 @@ public class LocalAppEngineServerBehaviour extends ServerBehaviourDelegate
 
     if (portProber.isPortInUse(adminPort)) {
       adminPort = 0;
-    }
-
-    if (serverPort == 0 || adminPort == 0) {
-      LinkedList<Integer> ports = null;
-      if (serverPort == 0 && adminPort == 0) {
-        ports = new LinkedList<>(portProber.findFreePorts(2 /* get two ports */));
-      } else {
-        ports = new LinkedList<>(portProber.findFreePorts(1 /* one port */));
-      }
-
-      if (ports.isEmpty()) {
-        throw new CoreException(newErrorStatus("Failed to find a free port."));
-      }
-      if (serverPort == 0) {
-        serverPort = ports.removeFirst();
-      }
-      if (adminPort == 0) {
-        adminPort = ports.removeFirst();
-      }
     }
   }
 
@@ -342,6 +316,21 @@ public class LocalAppEngineServerBehaviour extends ServerBehaviourDelegate
     }
   }
 
+  private static final String URL_PATTERN = "http://[a-zA-Z0-9][a-zA-Z0-9-.]*[a-zA-Z0-9]:([0-9]+)";
+
+  @VisibleForTesting
+  static int extractPortFromUrl(String line) {
+    try {
+      Matcher match = Pattern.compile(URL_PATTERN).matcher(line);
+      if (match.find()) {
+        return Integer.parseInt(match.group(1 /* regex group for the port portion */));
+      }
+      return -1;
+    } catch (NumberFormatException ex) {
+      return -1;
+    }
+  }
+
   /**
    * An output listener that monitors for well-known key dev_appserver output and affects server
    * state changes.
@@ -350,7 +339,11 @@ public class LocalAppEngineServerBehaviour extends ServerBehaviourDelegate
 
     @Override
     public void onOutputLine(String line) {
-      if (line.endsWith("Dev App Server is now running")) {
+      if (serverPort == 0 && line.contains("Starting module") && line.contains("running at: ")) {
+        serverPort = extractPortFromUrl(line);
+      } else if (adminPort == 0 && line.contains("Starting admin server at: ")) {
+        adminPort = extractPortFromUrl(line);
+      } else if (line.endsWith("Dev App Server is now running")) {
         // App Engine Standard (v1)
         setServerState(IServer.STATE_STARTED);
       } else if (line.endsWith(".Server:main: Started")) {
