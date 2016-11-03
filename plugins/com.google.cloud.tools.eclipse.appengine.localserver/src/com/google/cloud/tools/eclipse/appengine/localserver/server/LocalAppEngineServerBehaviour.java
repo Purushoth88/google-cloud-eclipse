@@ -339,11 +339,7 @@ public class LocalAppEngineServerBehaviour extends ServerBehaviourDelegate
 
     @Override
     public void onOutputLine(String line) {
-      if (serverPort == 0 && line.contains("Starting module") && line.contains("running at: ")) {
-        serverPort = extractPortFromUrl(line);
-      } else if (adminPort == 0 && line.contains("Starting admin server at: ")) {
-        adminPort = extractPortFromUrl(line);
-      } else if (line.endsWith("Dev App Server is now running")) {
+      if (line.endsWith("Dev App Server is now running")) {
         // App Engine Standard (v1)
         setServerState(IServer.STATE_STARTED);
       } else if (line.endsWith(".Server:main: Started")) {
@@ -352,6 +348,10 @@ public class LocalAppEngineServerBehaviour extends ServerBehaviourDelegate
       } else if (line.equals("Traceback (most recent call last):")) {
         // An error occurred
         setServerState(IServer.STATE_STOPPED);
+      } else if (serverPort == 0 && line.contains("Starting module") && line.contains("running at: ")) {
+        serverPort = extractPortFromUrl(line);
+      } else if (adminPort == 0 && line.contains("Starting admin server at: ")) {
+        adminPort = extractPortFromUrl(line);
       }
     }
   }
