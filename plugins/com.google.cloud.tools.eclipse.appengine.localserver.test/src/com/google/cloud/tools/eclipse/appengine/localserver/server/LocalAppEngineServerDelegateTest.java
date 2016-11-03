@@ -45,8 +45,10 @@ public class LocalAppEngineServerDelegateTest {
 
   private LocalAppEngineServerDelegate delegate = new LocalAppEngineServerDelegate();
   @Mock private IModule module1;
+  @Mock private IWebModule webModule1;
   @Mock private IModule module2;
-  @Mock private IWebModule webModule;
+  @Mock private IWebModule webModule2;
+  @Mock private IModule module3;
   @Rule public TestProject dynamicWebProject = new TestProject(Lists.newArrayList(JavaFacet.VERSION_1_7,
                                                                                   WebFacetUtils.WEB_25));
   @Rule public TestProject appEngineStandardProject =
@@ -102,17 +104,27 @@ public class LocalAppEngineServerDelegateTest {
   }
 
   @Test
-  public void testGetChildModules_webModuleType(){
+  public void testGetChildModules_webModuleType() {
     ModuleType webModuleType = new ModuleType("jst.web", "1.0");
     when(module1.getModuleType()).thenReturn(webModuleType);
     when(module1.getId()).thenReturn("module1");
+    when(module1.loadAdapter(IWebModule.class, null)).thenReturn(webModule1);
+    when(webModule1.getModules()).thenReturn(new IModule[] {module2});
+    when(module2.getModuleType()).thenReturn(webModuleType);
     when(module2.getId()).thenReturn("module2");
-    when(webModule.getModules()).thenReturn(new IModule[]{module2});
-    when(module1.loadAdapter(IWebModule.class, null)).thenReturn(webModule);
+    when(module2.loadAdapter(IWebModule.class, null)).thenReturn(webModule2);
+    when(webModule2.getModules()).thenReturn(new IModule[] {module3});
+    when(module3.getModuleType()).thenReturn(webModuleType);
+    when(module3.getId()).thenReturn("module3");
 
-    IModule[] childModules = delegate.getChildModules(new IModule[]{module1});
+    IModule[] childModules;
+    childModules = delegate.getChildModules(new IModule[] {module1});
     Assert.assertEquals(1, childModules.length);
     Assert.assertEquals("module2", childModules[0].getId());
+
+    childModules = delegate.getChildModules(new IModule[] {module1, module2});
+    Assert.assertEquals(1, childModules.length);
+    Assert.assertEquals("module3", childModules[0].getId());
   }
 
   @Test
