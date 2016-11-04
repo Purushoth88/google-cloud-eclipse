@@ -48,7 +48,7 @@ public class LocalAppEngineServerBehaviourTest {
     when(server.getAttribute(eq("appEngineDevServerPort"), anyInt())).thenReturn(65535);
     serverBehavior.checkAndSetPorts(server, portProber);
 
-    assertEquals(65535, serverBehavior.serverPort);
+    assertEquals(65535, serverBehavior.getServerPort());
     assertEquals(8000, serverBehavior.adminPort);
   }
 
@@ -94,7 +94,7 @@ public class LocalAppEngineServerBehaviourTest {
     when(server.getAttribute(eq("appEngineDevServerPort"), anyInt())).thenReturn(65535);
     when(server.getAttribute(eq("failoverAdminPortBound"), anyBoolean())).thenReturn(true);
     serverBehavior.checkAndSetPorts(server, portProber);
-    assertEquals(65535, serverBehavior.serverPort);
+    assertEquals(65535, serverBehavior.getServerPort());
     assertEquals(0, serverBehavior.adminPort);
   }
 
@@ -106,7 +106,7 @@ public class LocalAppEngineServerBehaviourTest {
       when(server.getAttribute(eq("appEngineDevServerPort"), anyInt())).thenReturn(65535);
       when(server.getAttribute(eq("failoverAdminPortBound"), anyBoolean())).thenReturn(false);
       serverBehavior.checkAndSetPorts(server, portProber);
-      assertEquals(65535, serverBehavior.serverPort);
+      assertEquals(65535, serverBehavior.getServerPort());
       assertEquals(0, serverBehavior.adminPort);
     } catch (CoreException ex) {
       assertEquals("Default admin port 8000 is in use.", ex.getMessage());
@@ -180,7 +180,7 @@ public class LocalAppEngineServerBehaviourTest {
     serverBehavior.checkAndSetPorts(server, portProber);
 
     simulateOutputParsing(serverOutputWithDefaultModule1);
-    assertEquals(55948, serverBehavior.serverPort);
+    assertEquals(55948, serverBehavior.getServerPort());
   }
 
   @Test
@@ -189,7 +189,7 @@ public class LocalAppEngineServerBehaviourTest {
     serverBehavior.checkAndSetPorts(server, portProber);
 
     simulateOutputParsing(serverOutputWithDefaultModule2);
-    assertEquals(8081, serverBehavior.serverPort);
+    assertEquals(8081, serverBehavior.getServerPort());
   }
 
   @Test
@@ -198,7 +198,7 @@ public class LocalAppEngineServerBehaviourTest {
     serverBehavior.checkAndSetPorts(server, portProber);
 
     simulateOutputParsing(serverOutputWithNoDefaultModule);
-    assertEquals(8181, serverBehavior.serverPort);
+    assertEquals(8181, serverBehavior.getServerPort());
   }
 
   @Test
@@ -208,7 +208,7 @@ public class LocalAppEngineServerBehaviourTest {
     serverBehavior.checkAndSetPorts(server, portProber);
 
     simulateOutputParsing(serverOutputWithDefaultModule1);
-    assertEquals(12345, serverBehavior.serverPort);
+    assertEquals(12345, serverBehavior.getServerPort());
   }
 
   @Test

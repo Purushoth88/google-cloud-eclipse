@@ -70,7 +70,7 @@ public class LocalAppEngineServerBehaviour extends ServerBehaviourDelegate
   private AppEngineDevServer devServer;
   private Process devProcess;
 
-  @VisibleForTesting int serverPort = -1;
+  private int serverPort = -1;
   @VisibleForTesting int adminPort = DEFAULT_ADMIN_PORT;
 
   private DevAppServerOutputListener serverOutputListener;
