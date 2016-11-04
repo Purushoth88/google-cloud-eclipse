@@ -323,10 +323,10 @@ public class LocalAppEngineServerBehaviour extends ServerBehaviourDelegate
       if (urlBegin != -1) {
         return new URI(line.substring(urlBegin)).getPort();
       }
-      return -1;
-    } catch (URISyntaxException ex) {
-      return -1;
-    }
+    } catch (URISyntaxException ex) {}
+
+    logger.log(Level.WARNING, "Cannot extract port from server output: " + line);
+    return -1;
   }
 
   /**
