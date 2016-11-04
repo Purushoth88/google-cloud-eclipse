@@ -21,19 +21,15 @@ import com.google.cloud.tools.eclipse.appengine.libraries.model.Filter;
 import com.google.cloud.tools.eclipse.appengine.libraries.model.LibraryFile;
 import com.google.cloud.tools.eclipse.appengine.libraries.model.MavenCoordinates;
 import com.google.cloud.tools.eclipse.util.MavenUtils;
+import com.google.cloud.tools.eclipse.util.io.FileDownloader;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
-import com.google.common.io.ByteStreams;
-import com.google.common.net.HttpHeaders;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.net.URLConnection;
 import java.util.Collections;
 import java.util.List;
 import org.apache.maven.artifact.Artifact;
@@ -135,10 +131,18 @@ public class M2RepositoryService implements ILibraryRepositoryService {
       IPath path = new FileDownloader(downloadFolder).download(url);
       return path;
     } catch (IOException e) {
+      // source file is failed to download, this is not an error
       return null;
     }
   }
 
+  /**
+   * Returns the folder to which the a file corresponding to <code>mavenCoordinates</code> should be downloaded.
+   * <p>
+   * The folder is created as follows:
+   * <code>&lt;bundle_state_location&gt;/downloads/&lt;groupId&gt;/&lt;artifactId&gt;/&lt;version&gt;</code>
+   * @return the location of the download folder, may not exist
+   */
   private IPath getDownloadedFilesFolder(MavenCoordinates mavenCoordinates) {
     File downloadedSources =
         Platform.getStateLocation(FrameworkUtil.getBundle(getClass()))
@@ -146,30 +150,9 @@ public class M2RepositoryService implements ILibraryRepositoryService {
           .append(mavenCoordinates.getGroupId())
           .append(mavenCoordinates.getArtifactId())
           .append(mavenCoordinates.getVersion()).toFile();
-    downloadedSources.mkdirs();
     return new Path(downloadedSources.getAbsolutePath());
   }
 
-  private static class FileDownloader {
-    private IPath downloadFolder;
-    
-    
-    public FileDownloader(IPath downloadFolder) {
-      this.downloadFolder = downloadFolder;
-    }
-
-    public IPath download(URL url) throws IOException {
-      File downloadedFile = downloadFolder.append(new Path(url.getPath()).lastSegment()).toFile();
-      FileOutputStream outputStream = new FileOutputStream(downloadedFile);
-      URLConnection connection = url.openConnection();
-      connection.setRequestProperty(HttpHeaders.USER_AGENT, "google-cloud-eclipse");
-      try (InputStream inputStream = connection.getInputStream()) {
-        ByteStreams.copy(inputStream, outputStream);
-        return new Path(downloadedFile.getAbsolutePath());
-      }
-    }
-  }
-  
   private static IAccessRule[] getAccessRules(List<Filter> filters) {
     IAccessRule[] accessRules = new IAccessRule[filters.size()];
     int idx = 0;
@@ -207,10 +190,10 @@ public class M2RepositoryService implements ILibraryRepositoryService {
     try {
       MavenCoordinates sourceMavenCoordinates = new MavenCoordinates(mavenCoordinates);
       sourceMavenCoordinates.setClassifier("sources");
-      Artifact artifact;
-      artifact = resolveArtifact(sourceMavenCoordinates);
+      Artifact artifact = resolveArtifact(sourceMavenCoordinates);
       return new Path(artifact.getFile().getAbsolutePath());
     } catch (LibraryRepositoryServiceException exception) {
+      // source file is failed to download, this is not an error
       return null;
     }
   }
