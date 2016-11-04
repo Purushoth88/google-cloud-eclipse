@@ -162,11 +162,7 @@ public class LocalAppEngineServerBehaviour extends ServerBehaviourDelegate
   }
 
   private void checkAndSetPorts() throws CoreException {
-    boolean adminPortFailover = getServer().getAttribute(
-        ADMIN_PORT_BOUND_FAILOVER_ATTRIBUTE_NAME, DEFAULT_ADMIN_PORT_BOUND_FAILOVER_POLICY);
-    serverPort = getServer().getAttribute(SERVER_PORT_ATTRIBUTE_NAME, DEFAULT_SERVER_PORT);
-
-    checkAndSetPorts(adminPortFailover, new PortProber() {
+    checkAndSetPorts(getServer(), new PortProber() {
       @Override
       public boolean isPortInUse(int port) {
         return org.eclipse.wst.server.core.util.SocketUtil.isPortInUse(port);
@@ -180,7 +176,11 @@ public class LocalAppEngineServerBehaviour extends ServerBehaviourDelegate
   }
 
   @VisibleForTesting
-  void checkAndSetPorts(boolean adminPortFailover, PortProber portProber) throws CoreException {
+  void checkAndSetPorts(IServer server, PortProber portProber) throws CoreException {
+    boolean adminPortFailover = server.getAttribute(
+        ADMIN_PORT_BOUND_FAILOVER_ATTRIBUTE_NAME, DEFAULT_ADMIN_PORT_BOUND_FAILOVER_POLICY);
+    serverPort = server.getAttribute(SERVER_PORT_ATTRIBUTE_NAME, DEFAULT_SERVER_PORT);
+
     if (serverPort < 0 || serverPort > 65535) {
       throw new CoreException(newErrorStatus("Port must be between 0 and 65535."));
     }
