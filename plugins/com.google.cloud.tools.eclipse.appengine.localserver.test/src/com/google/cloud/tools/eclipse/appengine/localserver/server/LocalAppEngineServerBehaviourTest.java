@@ -93,35 +93,35 @@ public class LocalAppEngineServerBehaviourTest {
   }
 
   @Test
-  public void testExtractPortFromUrl_hostName() {
-    int port = LocalAppEngineServerBehaviour.extractPortFromUrl("http://localhost:5678");
-    assertEquals(5678, port);
+  public void testExtractPortFromServerUrlOutput_hostName() {
+    int port = LocalAppEngineServerBehaviour.extractPortFromServerUrlOutput("http://localhost:567");
+    assertEquals(567, port);
 
-    port = LocalAppEngineServerBehaviour.extractPortFromUrl("http://my-machine:1234");
+    port = LocalAppEngineServerBehaviour.extractPortFromServerUrlOutput("http://my-machine:1234");
     assertEquals(1234, port);
 
-    port = LocalAppEngineServerBehaviour.extractPortFromUrl("http://www.server-example.com:80");
+    port = LocalAppEngineServerBehaviour.extractPortFromServerUrlOutput("http://www.a-b.c.com:80");
     assertEquals(80, port);
   }
 
   @Test
-  public void testExtractPortFromUrl_ipv4Address() {
-    int port = LocalAppEngineServerBehaviour.extractPortFromUrl("http://0.0.0.0:5678");
+  public void testExtractPortFromServerUrlOutput_ipv4Address() {
+    int port = LocalAppEngineServerBehaviour.extractPortFromServerUrlOutput("http://0.0.0.0:5678");
     assertEquals(5678, port);
 
-    port = LocalAppEngineServerBehaviour.extractPortFromUrl("http://192.168.1.4:1234");
+    port = LocalAppEngineServerBehaviour.extractPortFromServerUrlOutput("http://192.168.1.4:1234");
     assertEquals(1234, port);
   }
 
   @Test
-  public void testExtractPortFromUrl_noPortUrl() {
-    int port = LocalAppEngineServerBehaviour.extractPortFromUrl("http://localhost");
+  public void testExtractPortFromServerUrlOutput_noPortUrl() {
+    int port = LocalAppEngineServerBehaviour.extractPortFromServerUrlOutput("http://localhost");
     assertEquals(-1, port);
   }
 
   @Test
-  public void testExtractPortFromUrl_noMatch() {
-    int port = LocalAppEngineServerBehaviour.extractPortFromUrl("arbitrary string");
+  public void testExtractPortFromDevServerUrlOutput_noMatch() {
+    int port = LocalAppEngineServerBehaviour.extractPortFromServerUrlOutput("arbitrary string");
     assertEquals(-1, port);
   }
 
@@ -129,6 +129,7 @@ public class LocalAppEngineServerBehaviourTest {
       "WARNING  2016-11-03 21:11:21,930 devappserver2.py:785] DEFAULT_VERSION_HOSTNAME will not be set correctly with --port=0",
       "INFO     2016-11-03 21:11:21,956 api_server.py:205] Starting API server at: http://localhost:52892",
       "INFO     2016-11-03 21:11:21,959 dispatcher.py:197] Starting module \"default\" running at: http://localhost:55948",
+      "INFO     2016-11-03 21:11:21,959 dispatcher.py:197] Starting module \"second\" running at: http://localhost:8081",
       "INFO     2016-11-03 21:11:21,959 admin_server.py:116] Starting admin server at: http://localhost:43679",
       "Nov 03, 2016 9:11:23 PM com.google.appengine.tools.development.SystemPropertiesManager setSystemProperties"
   };

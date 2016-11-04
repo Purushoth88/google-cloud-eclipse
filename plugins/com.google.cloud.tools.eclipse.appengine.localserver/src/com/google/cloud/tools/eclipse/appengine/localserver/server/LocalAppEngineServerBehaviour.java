@@ -29,13 +29,13 @@ import com.google.cloud.tools.eclipse.appengine.localserver.Activator;
 import com.google.cloud.tools.eclipse.sdk.ui.MessageConsoleWriterOutputLineListener;
 import com.google.common.annotations.VisibleForTesting;
 import java.io.File;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IStatus;
@@ -184,6 +184,7 @@ public class LocalAppEngineServerBehaviour extends ServerBehaviourDelegate
 
     if (portProber.isPortInUse(adminPort)) {
       adminPort = 0;
+      logger.log(Level.INFO, "Default admin port 8000 is in use. Picking an unused port.");
     }
   }
 
@@ -315,17 +316,15 @@ public class LocalAppEngineServerBehaviour extends ServerBehaviourDelegate
     }
   }
 
-  private static final String URL_PATTERN = "http://[a-zA-Z0-9][a-zA-Z0-9-.]*[a-zA-Z0-9]:([0-9]+)";
-
   @VisibleForTesting
-  static int extractPortFromUrl(String line) {
+  static int extractPortFromServerUrlOutput(String line) {
     try {
-      Matcher match = Pattern.compile(URL_PATTERN).matcher(line);
-      if (match.find()) {
-        return Integer.parseInt(match.group(1 /* regex group for the port portion */));
+      int urlBegin = line.lastIndexOf("http://");
+      if (urlBegin != -1) {
+        return new URI(line.substring(urlBegin)).getPort();
       }
       return -1;
-    } catch (NumberFormatException ex) {
+    } catch (URISyntaxException ex) {
       return -1;
     }
   }
@@ -347,10 +346,10 @@ public class LocalAppEngineServerBehaviour extends ServerBehaviourDelegate
       } else if (line.equals("Traceback (most recent call last):")) {
         // An error occurred
         setServerState(IServer.STATE_STOPPED);
-      } else if (serverPort == 0 && line.contains("Starting module") && line.contains("running at: ")) {
-        serverPort = extractPortFromUrl(line);
+      } else if (serverPort == 0 && line.contains("Starting module \"default\" running at: ")) {
+        serverPort = extractPortFromServerUrlOutput(line);
       } else if (adminPort == 0 && line.contains("Starting admin server at: ")) {
-        adminPort = extractPortFromUrl(line);
+        adminPort = extractPortFromServerUrlOutput(line);
       }
     }
   }
