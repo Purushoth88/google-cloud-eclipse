@@ -47,6 +47,7 @@ import org.eclipse.wst.server.core.internal.IModulePublishHelper;
 import org.eclipse.wst.server.core.model.IModuleResource;
 import org.eclipse.wst.server.core.model.IModuleResourceDelta;
 import org.eclipse.wst.server.core.model.ServerBehaviourDelegate;
+import org.eclipse.wst.server.core.util.SocketUtil;
 
 /**
  * A {@link ServerBehaviourDelegate} for App Engine Server executed via the Java App Management
@@ -165,7 +166,7 @@ public class LocalAppEngineServerBehaviour extends ServerBehaviourDelegate
     checkAndSetPorts(getServer(), new PortProber() {
       @Override
       public boolean isPortInUse(int port) {
-        return org.eclipse.wst.server.core.util.SocketUtil.isPortInUse(port);
+        return SocketUtil.isPortInUse(port);
       }
     });
   }
