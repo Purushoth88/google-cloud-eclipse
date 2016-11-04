@@ -188,6 +188,15 @@ public class LocalAppEngineServerBehaviour extends ServerBehaviourDelegate
     }
   }
 
+  /**
+   * Returns service port of this server. Note that this method returns -1 if the user has never
+   * attempted to launch the server.
+   *
+   * @return user-specified port, unless the user let the server choose it (by setting the port
+   *     to 0 or an empty string in the UI initially). If the user let the server choose it,
+   *     returns the port of the module with the name "default", if the module exists; otherwise,
+   *     returns the port of an arbitrary module.
+   */
   public int getServerPort() {
     return serverPort;
   }
