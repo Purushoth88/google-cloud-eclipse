@@ -56,19 +56,38 @@ import org.osgi.service.component.annotations.Component;
 @Component
 public class M2RepositoryService implements ILibraryRepositoryService {
 
+  private static final String CLASSPATH_ATTRIBUTE_SOURCE_URL =
+      "com.google.cloud.tools.eclipse.appengine.libraries.sourceUrl";
+
   private MavenHelper mavenHelper;
   private MavenCoordinatesClasspathAttributesTransformer transformer;
 
   @Override
   public IClasspathEntry getLibraryClasspathEntry(LibraryFile libraryFile) throws LibraryRepositoryServiceException {
-    Artifact artifact = resolveArtifact(libraryFile.getMavenCoordinates());
+    MavenCoordinates mavenCoordinates = libraryFile.getMavenCoordinates();
+    Artifact artifact = resolveArtifact(mavenCoordinates);
     IClasspathAttribute[] libraryFileClasspathAttributes = getClasspathAttributes(libraryFile, artifact);
+    URL sourceUrl = getSourceUrlFromUri(libraryFile);
     return JavaCore.newLibraryEntry(new Path(artifact.getFile().getAbsolutePath()),
-                                    getSourceLocation(libraryFile),
+                                    getSourceLocation(mavenCoordinates, sourceUrl),
                                     null /*  sourceAttachmentRootPath */,
                                     getAccessRules(libraryFile.getFilters()),
                                     libraryFileClasspathAttributes,
                                     true /* isExported */);
+  }
+
+  protected URL getSourceUrlFromUri(LibraryFile libraryFile) {
+    try {
+      URI sourceUri = libraryFile.getSourceUri();
+      if (sourceUri == null) {
+        return null;
+      } else {
+        return sourceUri.toURL();
+      }
+    } catch (MalformedURLException | IllegalArgumentException e) {
+      // should not cause error in the resolution process, we'll disregard it
+      return null;
+    }
   }
 
   @Override
@@ -104,31 +123,39 @@ public class M2RepositoryService implements ILibraryRepositoryService {
       } else {
         attributes.add(UpdateClasspathAttributeUtil.createNonDependencyAttribute());
       }
+      if (libraryFile.getSourceUri() != null) {
+        addUriAttribute(attributes, CLASSPATH_ATTRIBUTE_SOURCE_URL, libraryFile.getSourceUri());
+      }
       if (libraryFile.getJavadocUri() != null) {
-        attributes.add(JavaCore.newClasspathAttribute(IClasspathAttribute.JAVADOC_LOCATION_ATTRIBUTE_NAME,
-                                                      libraryFile.getJavadocUri().toURL().toString()));
+        addUriAttribute(attributes, IClasspathAttribute.JAVADOC_LOCATION_ATTRIBUTE_NAME, libraryFile.getJavadocUri());
       }
       return attributes.toArray(new IClasspathAttribute[0]);
-    } catch (CoreException | MalformedURLException ex) {
+    } catch (CoreException ex) {
       throw new LibraryRepositoryServiceException("Could not create classpath attributes", ex);
     }
   }
 
-  private IPath getSourceLocation(LibraryFile libraryFile) {
-    MavenCoordinates mavenCoordinates = libraryFile.getMavenCoordinates();
-    if (libraryFile.getSourceUri() == null) {
-      return getMavenSourceJarLocation(mavenCoordinates);
-    } else {
-      return getDownloadedSourceLocation(libraryFile, mavenCoordinates);
+  protected void addUriAttribute(List<IClasspathAttribute> attributes, String attributeName, URI uri) {
+    try {
+      attributes.add(JavaCore.newClasspathAttribute(attributeName, uri.toURL().toString()));
+    } catch (MalformedURLException | IllegalArgumentException ex) {
+      // disregard invalid URL
     }
   }
 
-  private IPath getDownloadedSourceLocation(LibraryFile libraryFile, MavenCoordinates mavenCoordinates) {
+  private IPath getSourceLocation(MavenCoordinates mavenCoordinates, URL sourceUrl) {
+    if (sourceUrl == null) {
+      return getMavenSourceJarLocation(mavenCoordinates);
+    } else {
+      return getDownloadedSourceLocation(mavenCoordinates, sourceUrl);
+    }
+  }
+
+  private IPath getDownloadedSourceLocation(MavenCoordinates mavenCoordinates, URL sourceUrl) {
     
     try {
       IPath downloadFolder = getDownloadedFilesFolder(mavenCoordinates);
-      URL url = libraryFile.getSourceUri().toURL();
-      IPath path = new FileDownloader(downloadFolder).download(url);
+      IPath path = new FileDownloader(downloadFolder).download(sourceUrl);
       return path;
     } catch (IOException e) {
       // source file is failed to download, this is not an error

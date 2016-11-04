@@ -43,9 +43,9 @@ public class FileDownloader {
    * but does not have to exist, it will be created on demand.
    */
   public FileDownloader(IPath downloadFolderPath) {
-    Preconditions.checkNotNull(downloadFolderPath);
+    Preconditions.checkNotNull(downloadFolderPath, "downloadFolderPath is null");
     File downloadFolder = downloadFolderPath.toFile();
-    Preconditions.checkArgument(!downloadFolder.exists() && downloadFolder.isDirectory());
+    Preconditions.checkArgument(!downloadFolder.exists() || downloadFolder.isDirectory());
     this.downloadFolderPath = downloadFolderPath;
   }
 
@@ -53,12 +53,16 @@ public class FileDownloader {
    * Downloads the file pointed to by the <code>url</code>
    * <p>
    * The downloaded file's name will be the last segment of the path of the URL.
+   *
+   * @param url location of the file to download, cannot be <code>null</code>
    * @return a path pointing to the downloaded file
    * @throws IOException if the URL cannot be opened, the output file cannot be written or the transfer of the remote
    * file fails
    */
   public IPath download(URL url) throws IOException {
+    Preconditions.checkNotNull(url, "url is null");
     ensureDownloadFolderExists();
+
     File downloadedFile = downloadFolderPath.append(new Path(url.getPath()).lastSegment()).toFile();
     URLConnection connection = url.openConnection();
     connection.setRequestProperty(HttpHeaders.USER_AGENT, "google-cloud-eclipse");
@@ -69,10 +73,10 @@ public class FileDownloader {
     }
   }
 
-  private void ensureDownloadFolderExists() {
+  private void ensureDownloadFolderExists() throws IOException {
     File downloadFolder = downloadFolderPath.toFile();
-    if (!downloadFolder.exists()) {
-      downloadFolder.mkdirs();
+    if (!downloadFolder.exists() && !downloadFolder.mkdirs()) {
+      throw new IOException("Cannot create folder " + downloadFolder.getAbsolutePath());
     }
   }
 }
