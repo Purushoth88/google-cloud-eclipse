@@ -56,8 +56,11 @@ public class LocalAppEngineServerBehaviour extends ServerBehaviourDelegate
     implements IModulePublishHelper {
 
   public static final String SERVER_PORT_ATTRIBUTE_NAME = "appEngineDevServerPort";
+  public static final String ADMIN_PORT_BOUND_FAILOVER_ATTRIBUTE_NAME = "failoverAdminPortBound";
+
   public static final int DEFAULT_SERVER_PORT = 8080;
   public static final int DEFAULT_ADMIN_PORT = 8000;
+  public static final boolean DEFAULT_ADMIN_PORT_BOUND_FAILOVER_POLICY = true;
 
   private static final Logger logger =
       Logger.getLogger(LocalAppEngineServerBehaviour.class.getName());
@@ -159,8 +162,11 @@ public class LocalAppEngineServerBehaviour extends ServerBehaviourDelegate
   }
 
   private void checkAndSetPorts() throws CoreException {
+    boolean adminPortFailover = getServer().getAttribute(
+        ADMIN_PORT_BOUND_FAILOVER_ATTRIBUTE_NAME, DEFAULT_ADMIN_PORT_BOUND_FAILOVER_POLICY);
     serverPort = getServer().getAttribute(SERVER_PORT_ATTRIBUTE_NAME, DEFAULT_SERVER_PORT);
-    checkAndSetPorts(new PortProber() {
+
+    checkAndSetPorts(adminPortFailover, new PortProber() {
       @Override
       public boolean isPortInUse(int port) {
         return org.eclipse.wst.server.core.util.SocketUtil.isPortInUse(port);
@@ -174,7 +180,7 @@ public class LocalAppEngineServerBehaviour extends ServerBehaviourDelegate
   }
 
   @VisibleForTesting
-  void checkAndSetPorts(PortProber portProber) throws CoreException {
+  void checkAndSetPorts(boolean adminPortFailover, PortProber portProber) throws CoreException {
     if (serverPort < 0 || serverPort > 65535) {
       throw new CoreException(newErrorStatus("Port must be between 0 and 65535."));
     }
@@ -183,8 +189,12 @@ public class LocalAppEngineServerBehaviour extends ServerBehaviourDelegate
     }
 
     if (portProber.isPortInUse(adminPort)) {
-      adminPort = 0;
-      logger.log(Level.INFO, "Default admin port 8000 is in use. Picking an unused port.");
+      if (adminPortFailover) {
+        adminPort = 0;
+        logger.log(Level.INFO, "Default admin port 8000 is in use. Picking an unused port.");
+      } else {
+        throw new CoreException(newErrorStatus("Default admin port 8000 is in use."));
+      }
     }
   }
 

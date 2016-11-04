@@ -41,7 +41,7 @@ public class LocalAppEngineServerBehaviourTest {
   @Test
   public void testCheckAndSetPorts() throws CoreException {
     serverBehavior.serverPort = 65535;
-    serverBehavior.checkAndSetPorts(portProber);
+    serverBehavior.checkAndSetPorts(false /* adminPortFailover */, portProber);
 
     assertEquals(65535, serverBehavior.serverPort);
     assertEquals(8000, serverBehavior.adminPort);
@@ -51,7 +51,7 @@ public class LocalAppEngineServerBehaviourTest {
   public void testCheckAndSetPorts_negativeServerPort() {
     try {
       serverBehavior.serverPort = -1;
-      serverBehavior.checkAndSetPorts(portProber);
+      serverBehavior.checkAndSetPorts(false, portProber);
       fail();
     } catch (CoreException ex) {
       assertEquals("Port must be between 0 and 65535.", ex.getMessage());
@@ -62,7 +62,7 @@ public class LocalAppEngineServerBehaviourTest {
   public void testCheckAndSetPorts_outOfBoundServerPort() {
     try {
       serverBehavior.serverPort = 65536;
-      serverBehavior.checkAndSetPorts(portProber);
+      serverBehavior.checkAndSetPorts(false, portProber);
       fail();
     } catch (CoreException ex) {
       assertEquals("Port must be between 0 and 65535.", ex.getMessage());
@@ -75,7 +75,7 @@ public class LocalAppEngineServerBehaviourTest {
       when(portProber.isPortInUse(8080)).thenReturn(true);
 
       serverBehavior.serverPort = 8080;
-      serverBehavior.checkAndSetPorts(portProber);
+      serverBehavior.checkAndSetPorts(false, portProber);
       fail();
     } catch (CoreException ex) {
       assertEquals("Port 8080 is in use.", ex.getMessage());
@@ -83,13 +83,27 @@ public class LocalAppEngineServerBehaviourTest {
   }
 
   @Test
-  public void testCheckAndSetPorts_adminPortInUse() throws CoreException {
+  public void testCheckAndSetPorts_adminPortInUseFailover() throws CoreException {
     when(portProber.isPortInUse(8000)).thenReturn(true);
 
     serverBehavior.serverPort = 65535;
-    serverBehavior.checkAndSetPorts(portProber);
+    serverBehavior.checkAndSetPorts(true /* adminPortFailover */, portProber);
     assertEquals(65535, serverBehavior.serverPort);
     assertEquals(0, serverBehavior.adminPort);
+  }
+
+  @Test
+  public void testCheckAndSetPorts_adminPortInUseNoFailover() {
+    try {
+      when(portProber.isPortInUse(8000)).thenReturn(true);
+
+      serverBehavior.serverPort = 65535;
+      serverBehavior.checkAndSetPorts(false /* adminPortFailover */, portProber);
+      assertEquals(65535, serverBehavior.serverPort);
+      assertEquals(0, serverBehavior.adminPort);
+    } catch (CoreException ex) {
+      assertEquals("Default admin port 8000 is in use.", ex.getMessage());
+    }
   }
 
   @Test
