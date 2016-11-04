@@ -26,11 +26,13 @@ import com.google.cloud.tools.appengine.cloudsdk.process.ProcessExitListener;
 import com.google.cloud.tools.appengine.cloudsdk.process.ProcessOutputLineListener;
 import com.google.cloud.tools.appengine.cloudsdk.process.ProcessStartListener;
 import com.google.cloud.tools.eclipse.appengine.localserver.Activator;
+import com.google.cloud.tools.eclipse.appengine.localserver.Messages;
 import com.google.cloud.tools.eclipse.sdk.ui.MessageConsoleWriterOutputLineListener;
 import com.google.common.annotations.VisibleForTesting;
 import java.io.File;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -56,12 +58,11 @@ import org.eclipse.wst.server.core.util.SocketUtil;
 public class LocalAppEngineServerBehaviour extends ServerBehaviourDelegate
     implements IModulePublishHelper {
 
-  public static final String SERVER_PORT_ATTRIBUTE_NAME = "appEngineDevServerPort";
-  public static final String ADMIN_PORT_BOUND_FAILOVER_ATTRIBUTE_NAME = "failoverAdminPortBound";
+  public static final String SERVER_PORT_ATTRIBUTE_NAME = "appEngineDevServerPort"; //$NON-NLS-1$
+  public static final String ADMIN_PORT_ATTRIBUTE_NAME = "appEngineDevServerAdminPort"; //$NON-NLS-1$
 
   public static final int DEFAULT_SERVER_PORT = 8080;
   public static final int DEFAULT_ADMIN_PORT = 8000;
-  public static final boolean DEFAULT_ADMIN_PORT_BOUND_FAILOVER_POLICY = true;
 
   private static final Logger logger =
       Logger.getLogger(LocalAppEngineServerBehaviour.class.getName());
@@ -72,7 +73,7 @@ public class LocalAppEngineServerBehaviour extends ServerBehaviourDelegate
   private Process devProcess;
 
   private int serverPort = -1;
-  @VisibleForTesting int adminPort = DEFAULT_ADMIN_PORT;
+  @VisibleForTesting int adminPort = -1;
 
   private DevAppServerOutputListener serverOutputListener;
 
@@ -97,11 +98,11 @@ public class LocalAppEngineServerBehaviour extends ServerBehaviourDelegate
       try {
         devServer.stop(stopConfig);
       } catch (AppEngineException ex) {
-        logger.log(Level.WARNING, "Error terminating server: " + ex.getMessage(), ex);
+        logger.log(Level.WARNING, "Error terminating server: " + ex.getMessage(), ex); //$NON-NLS-1$
       }
     } else {
       // we've already given it a chance
-      logger.info("forced stop: destroying associated processes");
+      logger.info("forced stop: destroying associated processes"); //$NON-NLS-1$
       if (devProcess != null) {
         devProcess.destroy();
         devProcess = null;
@@ -133,7 +134,7 @@ public class LocalAppEngineServerBehaviour extends ServerBehaviourDelegate
     if ((serverState != IServer.STATE_STOPPING) && (serverState != IServer.STATE_STOPPED)) {
       return Status.OK_STATUS;
     } else {
-      return newErrorStatus("Stop in progress");
+      return newErrorStatus(Messages.SERVER_STOP_IN_PROGRESS);
     }
   }
 
@@ -158,7 +159,7 @@ public class LocalAppEngineServerBehaviour extends ServerBehaviourDelegate
     setModulePublishState(module, state);
   }
 
-  private IStatus newErrorStatus(String message) {
+  private static IStatus newErrorStatus(String message) {
     return new Status(IStatus.ERROR, Activator.PLUGIN_ID, message);
   }
 
@@ -178,25 +179,34 @@ public class LocalAppEngineServerBehaviour extends ServerBehaviourDelegate
 
   @VisibleForTesting
   void checkAndSetPorts(IServer server, PortProber portProber) throws CoreException {
-    boolean adminPortFailover = server.getAttribute(
-        ADMIN_PORT_BOUND_FAILOVER_ATTRIBUTE_NAME, DEFAULT_ADMIN_PORT_BOUND_FAILOVER_POLICY);
-    serverPort = server.getAttribute(SERVER_PORT_ATTRIBUTE_NAME, DEFAULT_SERVER_PORT);
+    serverPort = checkPortAttribute(server, portProber,
+        SERVER_PORT_ATTRIBUTE_NAME, DEFAULT_SERVER_PORT);
+    adminPort = checkPortAttribute(server, portProber,
+        ADMIN_PORT_ATTRIBUTE_NAME, DEFAULT_ADMIN_PORT);
+  }
 
-    if (serverPort < 0 || serverPort > 65535) {
-      throw new CoreException(newErrorStatus("Port must be between 0 and 65535."));
-    }
-    if (serverPort != 0 && portProber.isPortInUse(serverPort)) {
-      throw new CoreException(newErrorStatus("Port " + serverPort + " is in use."));
+  private static int checkPortAttribute(IServer server, PortProber portProber,
+      String attribute, int defaultPort) throws CoreException {
+    int port = server.getAttribute(attribute, defaultPort);
+    if (port < 0 || port > 65535) {
+      throw new CoreException(newErrorStatus(Messages.PORT_OUT_OF_RANGE));
     }
 
-    if (portProber.isPortInUse(adminPort)) {
-      if (adminPortFailover) {
-        adminPort = 0;
-        logger.log(Level.INFO, "Default admin port 8000 is in use. Picking an unused port.");
+    if (port != 0 && portProber.isPortInUse(port)) {
+      boolean failover = !attributeDefined(server, ADMIN_PORT_ATTRIBUTE_NAME);
+      if (failover) {
+        port = 0;
+        logger.log(Level.INFO, attribute + ": port " + port + " in use. Picking an unused port.");
       } else {
-        throw new CoreException(newErrorStatus("Default admin port 8000 is in use."));
+        throw new CoreException(newErrorStatus(
+            MessageFormat.format(Messages.PORT_IN_USE, String.valueOf(port))));
       }
     }
+    return port;
+  }
+
+  private static boolean attributeDefined(IServer server, String attribute) {
+    return server.getAttribute(attribute, (String) null) != null;
   }
 
   /**
@@ -235,13 +245,13 @@ public class LocalAppEngineServerBehaviour extends ServerBehaviourDelegate
 
     // FIXME: workaround bug when running on a Java8 JVM
     // https://github.com/GoogleCloudPlatform/gcloud-eclipse-tools/issues/181
-    devServerRunConfiguration.setJvmFlags(Arrays.asList("-Dappengine.user.timezone=UTC"));
+    devServerRunConfiguration.setJvmFlags(Arrays.asList("-Dappengine.user.timezone=UTC")); //$NON-NLS-1$
 
     // Run server
     try {
       devServer.run(devServerRunConfiguration);
     } catch (AppEngineException ex) {
-      Activator.logError("Error starting server: " + ex.getMessage());
+      Activator.logError("Error starting server: " + ex.getMessage()); //$NON-NLS-1$
       stop(true);
     }
   }
@@ -276,21 +286,21 @@ public class LocalAppEngineServerBehaviour extends ServerBehaviourDelegate
     List<String> jvmFlags = new ArrayList<String>();
     // FIXME: workaround bug when running on a Java8 JVM
     // https://github.com/GoogleCloudPlatform/gcloud-eclipse-tools/issues/181
-    jvmFlags.add("-Dappengine.user.timezone=UTC");
+    jvmFlags.add("-Dappengine.user.timezone=UTC"); //$NON-NLS-1$
 
     if (debugPort <= 0 || debugPort > 65535) {
-      throw new IllegalArgumentException("Debug port is set to " + debugPort
-                                      + ", should be between 1-65535");
+      throw new IllegalArgumentException("Debug port is set to " + debugPort //$NON-NLS-1$
+                                      + ", should be between 1-65535"); //$NON-NLS-1$
     }
-    jvmFlags.add("-Xdebug");
-    jvmFlags.add("-Xrunjdwp:transport=dt_socket,server=n,suspend=y,quiet=y,address=" + debugPort);
+    jvmFlags.add("-Xdebug"); //$NON-NLS-1$
+    jvmFlags.add("-Xrunjdwp:transport=dt_socket,server=n,suspend=y,quiet=y,address=" + debugPort); //$NON-NLS-1$
     devServerRunConfiguration.setJvmFlags(jvmFlags);
 
     // Run server
     try {
       devServer.run(devServerRunConfiguration);
     } catch (AppEngineException ex) {
-      Activator.logError("Error starting server: " + ex.getMessage());
+      Activator.logError("Error starting server: " + ex.getMessage()); //$NON-NLS-1$
       stop(true);
     }
   }
@@ -318,7 +328,7 @@ public class LocalAppEngineServerBehaviour extends ServerBehaviourDelegate
   public class LocalAppEngineExitListener implements ProcessExitListener {
     @Override
     public void onExit(int exitCode) {
-      logger.log(Level.FINE, "Process exit: code=" + exitCode);
+      logger.log(Level.FINE, "Process exit: code=" + exitCode); //$NON-NLS-1$
       devServer = null;
       devProcess = null;
       setServerState(IServer.STATE_STOPPED);
@@ -331,7 +341,7 @@ public class LocalAppEngineServerBehaviour extends ServerBehaviourDelegate
   public class LocalAppEngineStartListener implements ProcessStartListener {
     @Override
     public void onStart(Process process) {
-      logger.log(Level.FINE, "New Process: " + process);
+      logger.log(Level.FINE, "New Process: " + process); //$NON-NLS-1$
       devProcess = process;
     }
   }
@@ -339,13 +349,13 @@ public class LocalAppEngineServerBehaviour extends ServerBehaviourDelegate
   @VisibleForTesting
   static int extractPortFromServerUrlOutput(String line) {
     try {
-      int urlBegin = line.lastIndexOf("http://");
+      int urlBegin = line.lastIndexOf("http://"); //$NON-NLS-1$
       if (urlBegin != -1) {
         return new URI(line.substring(urlBegin)).getPort();
       }
     } catch (URISyntaxException ex) {}
 
-    logger.log(Level.WARNING, "Cannot extract port from server output: " + line);
+    logger.log(Level.WARNING, "Cannot extract port from server output: " + line); //$NON-NLS-1$
     return -1;
   }
 
@@ -359,22 +369,22 @@ public class LocalAppEngineServerBehaviour extends ServerBehaviourDelegate
 
     @Override
     public void onOutputLine(String line) {
-      if (line.endsWith("Dev App Server is now running")) {
+      if (line.endsWith("Dev App Server is now running")) { //$NON-NLS-1$
         // App Engine Standard (v1)
         setServerState(IServer.STATE_STARTED);
-      } else if (line.endsWith(".Server:main: Started")) {
+      } else if (line.endsWith(".Server:main: Started")) { //$NON-NLS-1$
         // App Engine Flexible (v2)
         setServerState(IServer.STATE_STARTED);
-      } else if (line.equals("Traceback (most recent call last):")) {
+      } else if (line.equals("Traceback (most recent call last):")) { //$NON-NLS-1$
         // An error occurred
         setServerState(IServer.STATE_STOPPED);
 
-      } else if (line.contains("Starting module") && line.contains("running at: http://")) {
-        if (serverPortCandidate == 0 || line.contains("Starting module \"default\"")) {
+      } else if (line.contains("Starting module") && line.contains("running at: http://")) { //$NON-NLS-1$ //$NON-NLS-2$
+        if (serverPortCandidate == 0 || line.contains("Starting module \"default\"")) { //$NON-NLS-1$
           serverPortCandidate = extractPortFromServerUrlOutput(line);
         }
 
-      } else if (line.contains("Starting admin server at: http://")) {
+      } else if (line.contains("Starting admin server at: http://")) { //$NON-NLS-1$
         if (serverPort == 0) {  // We assume we will no longer see URLs for modules from now on.
           serverPort = serverPortCandidate;
         }
