@@ -335,6 +335,8 @@ public class LocalAppEngineServerBehaviour extends ServerBehaviourDelegate
    */
   public class DevAppServerOutputListener implements ProcessOutputLineListener {
 
+    private int serverPortCandidate = 0;
+
     @Override
     public void onOutputLine(String line) {
       if (line.endsWith("Dev App Server is now running")) {
@@ -346,10 +348,19 @@ public class LocalAppEngineServerBehaviour extends ServerBehaviourDelegate
       } else if (line.equals("Traceback (most recent call last):")) {
         // An error occurred
         setServerState(IServer.STATE_STOPPED);
-      } else if (serverPort == 0 && line.contains("Starting module \"default\" running at: ")) {
-        serverPort = extractPortFromServerUrlOutput(line);
-      } else if (adminPort == 0 && line.contains("Starting admin server at: ")) {
-        adminPort = extractPortFromServerUrlOutput(line);
+
+      } else if (line.contains("Starting module") && line.contains("running at: http://")) {
+        if (serverPortCandidate == 0 || line.contains("Starting module \"default\"")) {
+          serverPortCandidate = extractPortFromServerUrlOutput(line);
+        }
+
+      } else if (line.contains("Starting admin server at: http://")) {
+        if (serverPort == 0) {  // We assume we will no longer see URLs for modules from now on.
+          serverPort = serverPortCandidate;
+        }
+        if (adminPort == 0) {
+          adminPort = extractPortFromServerUrlOutput(line);
+        }
       }
     }
   }

@@ -125,7 +125,7 @@ public class LocalAppEngineServerBehaviourTest {
     assertEquals(-1, port);
   }
 
-  private static final String[] serverOutput = new String[] {
+  private static final String[] serverOutputWithDefaultModule1 = new String[] {
       "WARNING  2016-11-03 21:11:21,930 devappserver2.py:785] DEFAULT_VERSION_HOSTNAME will not be set correctly with --port=0",
       "INFO     2016-11-03 21:11:21,956 api_server.py:205] Starting API server at: http://localhost:52892",
       "INFO     2016-11-03 21:11:21,959 dispatcher.py:197] Starting module \"default\" running at: http://localhost:55948",
@@ -134,21 +134,65 @@ public class LocalAppEngineServerBehaviourTest {
       "Nov 03, 2016 9:11:23 PM com.google.appengine.tools.development.SystemPropertiesManager setSystemProperties"
   };
 
+  private static final String[] serverOutputWithDefaultModule2 = new String[] {
+      "WARNING  2016-11-03 21:11:21,930 devappserver2.py:785] DEFAULT_VERSION_HOSTNAME will not be set correctly with --port=0",
+      "INFO     2016-11-03 21:11:21,956 api_server.py:205] Starting API server at: http://localhost:52892",
+      "INFO     2016-11-03 21:11:21,959 dispatcher.py:197] Starting module \"first\" running at: http://localhost:55948",
+      "INFO     2016-11-03 21:11:21,959 dispatcher.py:197] Starting module \"default\" running at: http://localhost:8081",
+      "INFO     2016-11-03 21:11:21,959 admin_server.py:116] Starting admin server at: http://localhost:43679",
+      "Nov 03, 2016 9:11:23 PM com.google.appengine.tools.development.SystemPropertiesManager setSystemProperties"
+  };
+
+  private static final String[] serverOutputWithNoDefaultModule = new String[] {
+      "WARNING  2016-11-03 21:11:21,930 devappserver2.py:785] DEFAULT_VERSION_HOSTNAME will not be set correctly with --port=0",
+      "INFO     2016-11-03 21:11:21,956 api_server.py:205] Starting API server at: http://localhost:52892",
+      "INFO     2016-11-03 21:11:21,959 dispatcher.py:197] Starting module \"first\" running at: http://localhost:8181",
+      "INFO     2016-11-03 21:11:21,959 dispatcher.py:197] Starting module \"second\" running at: http://localhost:8182",
+      "INFO     2016-11-03 21:11:21,959 dispatcher.py:197] Starting module \"third\" running at: http://localhost:8183",
+      "INFO     2016-11-03 21:11:21,959 admin_server.py:116] Starting admin server at: http://localhost:43679",
+      "Nov 03, 2016 9:11:23 PM com.google.appengine.tools.development.SystemPropertiesManager setSystemProperties"
+  };
+
   @Test
-  public void testExtractServerPortFromOutput() {
+  public void testExtractServerPortFromOutput_firstModuleIsDefault() {
     serverBehavior.serverPort = 0;
-    for (String line : serverOutput) {
-      serverBehavior.new DevAppServerOutputListener().onOutputLine(line);
-    }
+    simulateOutputParsing(serverOutputWithDefaultModule1);
     assertEquals(55948, serverBehavior.serverPort);
+  }
+
+  @Test
+  public void testExtractServerPortFromOutput_secondModuleIsDefault() {
+    serverBehavior.serverPort = 0;
+    simulateOutputParsing(serverOutputWithDefaultModule2);
+    assertEquals(8081, serverBehavior.serverPort);
+  }
+
+  @Test
+  public void testExtractServerPortFromOutput_noDefaultModule() {
+    serverBehavior.serverPort = 0;
+    simulateOutputParsing(serverOutputWithNoDefaultModule);
+    assertEquals(8181, serverBehavior.serverPort);
+  }
+
+  @Test
+  public void testExtractServerPortFromOutput_defaultModuleDoesNotOverrideUserSpecifiedPort() {
+    serverBehavior.serverPort = 12345;
+    simulateOutputParsing(serverOutputWithDefaultModule1);
+    assertEquals(12345, serverBehavior.serverPort);
   }
 
   @Test
   public void testExtractAdminPortFromOutput() {
     serverBehavior.adminPort = 0;
-    for (String line : serverOutput) {
-      serverBehavior.new DevAppServerOutputListener().onOutputLine(line);
-    }
+    simulateOutputParsing(serverOutputWithDefaultModule1);
     assertEquals(43679, serverBehavior.adminPort);
+  }
+
+  private void simulateOutputParsing(String[] output) {
+    LocalAppEngineServerBehaviour.DevAppServerOutputListener outputListener =
+        serverBehavior.new DevAppServerOutputListener();
+    for (String line : output) {
+      outputListener.onOutputLine(line);
+    }
   }
 }
