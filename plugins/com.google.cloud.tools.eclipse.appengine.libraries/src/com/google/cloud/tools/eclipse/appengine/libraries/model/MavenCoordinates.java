@@ -51,6 +51,18 @@ public class MavenCoordinates {
   }
 
   /**
+   * Copy constructor
+   */
+  public MavenCoordinates(MavenCoordinates mavenCoordinates) {
+    repository = mavenCoordinates.repository;
+    groupId = mavenCoordinates.groupId;
+    artifactId = mavenCoordinates.artifactId;
+    version = mavenCoordinates.version;
+    type = mavenCoordinates.type;
+    classifier = mavenCoordinates.classifier;
+  }
+
+  /**
    * @return the Maven version of the artifact, defaults to special value {@link MavenCoordinates#LATEST_VERSION}, never
    * <code>null</code>
    */
@@ -129,4 +141,23 @@ public class MavenCoordinates {
   public String getArtifactId() {
     return artifactId;
   }
+
+  @Override
+  public String toString() {
+    return "MavenCoordinates [repository="
+           + repository
+           + ", "
+           + groupId
+           + ":"
+           + artifactId
+           + ":"
+           + type
+           + ":"
+           + classifier
+           + ":"
+           + version
+           + "]";
+  }
+
+  
 }

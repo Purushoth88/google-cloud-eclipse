@@ -23,9 +23,17 @@ import com.google.cloud.tools.eclipse.appengine.libraries.model.MavenCoordinates
 import com.google.cloud.tools.eclipse.util.MavenUtils;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.io.ByteStreams;
+import com.google.common.net.HttpHeaders;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URL;
+import java.net.URLConnection;
 import java.util.Collections;
 import java.util.List;
 import org.apache.maven.artifact.Artifact;
@@ -34,12 +42,14 @@ import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.Path;
+import org.eclipse.core.runtime.Platform;
 import org.eclipse.jdt.core.IAccessRule;
 import org.eclipse.jdt.core.IClasspathAttribute;
 import org.eclipse.jdt.core.IClasspathEntry;
 import org.eclipse.jdt.core.JavaCore;
 import org.eclipse.jst.j2ee.classpathdep.UpdateClasspathAttributeUtil;
 import org.eclipse.osgi.util.NLS;
+import org.osgi.framework.FrameworkUtil;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 
@@ -109,15 +119,57 @@ public class M2RepositoryService implements ILibraryRepositoryService {
   }
 
   private IPath getSourceLocation(LibraryFile libraryFile) {
+    MavenCoordinates mavenCoordinates = libraryFile.getMavenCoordinates();
     if (libraryFile.getSourceUri() == null) {
-      return getSourceJarLocation(libraryFile.getMavenCoordinates());
+      return getMavenSourceJarLocation(mavenCoordinates);
     } else {
-      // download the file and return path to it
-      // TODO https://github.com/GoogleCloudPlatform/google-cloud-eclipse/issues/800
-      return new Path("/downloaded/source/file"); //$NON-NLS-1$
+      return getDownloadedSourceLocation(libraryFile, mavenCoordinates);
     }
   }
 
+  private IPath getDownloadedSourceLocation(LibraryFile libraryFile, MavenCoordinates mavenCoordinates) {
+    
+    try {
+      IPath downloadFolder = getDownloadedFilesFolder(mavenCoordinates);
+      URL url = libraryFile.getSourceUri().toURL();
+      IPath path = new FileDownloader(downloadFolder).download(url);
+      return path;
+    } catch (IOException e) {
+      return null;
+    }
+  }
+
+  private IPath getDownloadedFilesFolder(MavenCoordinates mavenCoordinates) {
+    File downloadedSources =
+        Platform.getStateLocation(FrameworkUtil.getBundle(getClass()))
+          .append("downloads")
+          .append(mavenCoordinates.getGroupId())
+          .append(mavenCoordinates.getArtifactId())
+          .append(mavenCoordinates.getVersion()).toFile();
+    downloadedSources.mkdirs();
+    return new Path(downloadedSources.getAbsolutePath());
+  }
+
+  private static class FileDownloader {
+    private IPath downloadFolder;
+    
+    
+    public FileDownloader(IPath downloadFolder) {
+      this.downloadFolder = downloadFolder;
+    }
+
+    public IPath download(URL url) throws IOException {
+      File downloadedFile = downloadFolder.append(new Path(url.getPath()).lastSegment()).toFile();
+      FileOutputStream outputStream = new FileOutputStream(downloadedFile);
+      URLConnection connection = url.openConnection();
+      connection.setRequestProperty(HttpHeaders.USER_AGENT, "google-cloud-eclipse");
+      try (InputStream inputStream = connection.getInputStream()) {
+        ByteStreams.copy(inputStream, outputStream);
+        return new Path(downloadedFile.getAbsolutePath());
+      }
+    }
+  }
+  
   private static IAccessRule[] getAccessRules(List<Filter> filters) {
     IAccessRule[] accessRules = new IAccessRule[filters.size()];
     int idx = 0;
@@ -151,8 +203,16 @@ public class M2RepositoryService implements ILibraryRepositoryService {
     }
   }
 
-  private IPath getSourceJarLocation(MavenCoordinates mavenCoordinates) {
-    return new Path("/path/to/source/jar/file/in/m2_repo/" + mavenCoordinates.getArtifactId() + "." + mavenCoordinates.getType()); //$NON-NLS-1$ //$NON-NLS-2$
+  private IPath getMavenSourceJarLocation(MavenCoordinates mavenCoordinates) {
+    try {
+      MavenCoordinates sourceMavenCoordinates = new MavenCoordinates(mavenCoordinates);
+      sourceMavenCoordinates.setClassifier("sources");
+      Artifact artifact;
+      artifact = resolveArtifact(sourceMavenCoordinates);
+      return new Path(artifact.getFile().getAbsolutePath());
+    } catch (LibraryRepositoryServiceException exception) {
+      return null;
+    }
   }
 
   @Activate

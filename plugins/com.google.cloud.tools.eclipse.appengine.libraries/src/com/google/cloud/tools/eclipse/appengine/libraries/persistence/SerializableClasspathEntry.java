@@ -62,12 +62,16 @@ public class SerializableClasspathEntry {
   }
 
   public void setSourcePath(IPath sourceAttachmentPath) {
-    this.sourceAttachmentPath = sourceAttachmentPath.toOSString();
+    if (sourceAttachmentPath == null) {
+      this.sourceAttachmentPath = "";
+    } else {
+      this.sourceAttachmentPath = sourceAttachmentPath.toOSString();
+    }
   }
 
   public IClasspathEntry toClasspathEntry(IPath baseDirectory) {
     return JavaCore.newLibraryEntry(PathUtil.makePathAbsolute(new Path(path), baseDirectory),
-                                    new Path(sourceAttachmentPath),
+                                    sourceAttachmentPath.isEmpty() ? null : new Path(sourceAttachmentPath),
                                     null,
                                     getAccessRules(),
                                     getAttributes(),
