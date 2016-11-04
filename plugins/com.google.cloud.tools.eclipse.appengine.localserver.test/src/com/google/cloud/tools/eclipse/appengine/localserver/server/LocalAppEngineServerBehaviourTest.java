@@ -38,14 +38,16 @@ public class LocalAppEngineServerBehaviourTest {
   @Mock private PortProber portProber;
   @Mock private IServer server;
 
-  private void setUpPortAttributes(int serverPort) {
+  private void setUpServerPortAttribute(int serverPort) {
     when(server.getAttribute(eq("appEngineDevServerPort"), anyInt())).thenReturn(serverPort);
+    when(server.getAttribute(eq("appEngineDevServerPort"), anyString()))
+        .thenReturn(String.valueOf(serverPort));
     when(server.getAttribute(eq("appEngineDevServerAdminPort"), anyInt())).thenReturn(8000);
     when(server.getAttribute(eq("appEngineDevServerAdminPort"), anyString())).thenReturn(null);
   }
 
   private void setUpPortAttributes(int serverPort, int adminPort) {
-    when(server.getAttribute(eq("appEngineDevServerPort"), anyInt())).thenReturn(serverPort);
+    setUpServerPortAttribute(serverPort);
     when(server.getAttribute(eq("appEngineDevServerAdminPort"), anyInt())).thenReturn(adminPort);
     when(server.getAttribute(eq("appEngineDevServerAdminPort"), anyString()))
         .thenReturn(String.valueOf(adminPort));
@@ -73,7 +75,7 @@ public class LocalAppEngineServerBehaviourTest {
 
   @Test
   public void testCheckAndSetPorts_adminPortAttributeNotSet() throws CoreException {
-    setUpPortAttributes(9080 /* serverPort */);  // admin port undefined
+    setUpServerPortAttribute(9080 /* serverPort */);  // admin port undefined
     serverBehavior.checkAndSetPorts(server, portProber);
 
     assertEquals(8000, serverBehavior.adminPort);
@@ -138,7 +140,7 @@ public class LocalAppEngineServerBehaviourTest {
   @Test
   public void testCheckAndSetPorts_adminPortNotSetAndPortInuse() throws CoreException {
     when(portProber.isPortInUse(8000)).thenReturn(true);
-    setUpPortAttributes(9080);
+    setUpServerPortAttribute(9080);
     serverBehavior.checkAndSetPorts(server, portProber);
     assertEquals(9080, serverBehavior.getServerPort());
     assertEquals(0, serverBehavior.adminPort);
@@ -219,7 +221,7 @@ public class LocalAppEngineServerBehaviourTest {
 
   @Test
   public void testExtractServerPortFromOutput_firstModuleIsDefault() throws CoreException {
-    setUpPortAttributes(0);
+    setUpServerPortAttribute(0);
     serverBehavior.checkAndSetPorts(server, portProber);
 
     simulateOutputParsing(serverOutputWithDefaultModule1);
@@ -228,7 +230,7 @@ public class LocalAppEngineServerBehaviourTest {
 
   @Test
   public void testExtractServerPortFromOutput_secondModuleIsDefault() throws CoreException {
-    setUpPortAttributes(0);
+    setUpServerPortAttribute(0);
     serverBehavior.checkAndSetPorts(server, portProber);
 
     simulateOutputParsing(serverOutputWithDefaultModule2);
@@ -237,7 +239,7 @@ public class LocalAppEngineServerBehaviourTest {
 
   @Test
   public void testExtractServerPortFromOutput_noDefaultModule() throws CoreException {
-    setUpPortAttributes(0);
+    setUpServerPortAttribute(0);
     serverBehavior.checkAndSetPorts(server, portProber);
 
     simulateOutputParsing(serverOutputWithNoDefaultModule);
@@ -247,7 +249,7 @@ public class LocalAppEngineServerBehaviourTest {
   @Test
   public void testExtractServerPortFromOutput_defaultModuleDoesNotOverrideUserSpecifiedPort()
       throws CoreException {
-    setUpPortAttributes(12345);
+    setUpServerPortAttribute(12345);
     serverBehavior.checkAndSetPorts(server, portProber);
 
     simulateOutputParsing(serverOutputWithDefaultModule1);

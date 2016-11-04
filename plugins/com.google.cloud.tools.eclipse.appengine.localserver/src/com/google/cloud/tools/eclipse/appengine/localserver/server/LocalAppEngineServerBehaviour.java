@@ -193,7 +193,7 @@ public class LocalAppEngineServerBehaviour extends ServerBehaviourDelegate
     }
 
     if (port != 0 && portProber.isPortInUse(port)) {
-      boolean failover = !attributeDefined(server, ADMIN_PORT_ATTRIBUTE_NAME);
+      boolean failover = !attributeDefined(server, attribute);
       if (failover) {
         port = 0;
         logger.log(Level.INFO, attribute + ": port " + port + " in use. Picking an unused port.");
