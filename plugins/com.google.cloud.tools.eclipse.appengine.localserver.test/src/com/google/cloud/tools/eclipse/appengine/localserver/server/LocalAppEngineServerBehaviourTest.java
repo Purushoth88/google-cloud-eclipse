@@ -26,6 +26,7 @@ import static org.mockito.Mockito.when;
 import com.google.cloud.tools.eclipse.appengine.localserver.server.LocalAppEngineServerBehaviour.PortProber;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.wst.server.core.IServer;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -38,16 +39,19 @@ public class LocalAppEngineServerBehaviourTest {
   @Mock private PortProber portProber;
   @Mock private IServer server;
 
+  @Before
+  public void setUp() {
+    when(server.getAttribute(eq("appEngineDevServerAdminPort"), eq(8000))).thenReturn(8000);
+    when(server.getAttribute(eq("appEngineDevServerAdminPort"), anyString())).thenReturn(null);
+  }
+
   private void setUpServerPortAttribute(int serverPort) {
     when(server.getAttribute(eq("appEngineDevServerPort"), anyInt())).thenReturn(serverPort);
     when(server.getAttribute(eq("appEngineDevServerPort"), anyString()))
         .thenReturn(String.valueOf(serverPort));
-    when(server.getAttribute(eq("appEngineDevServerAdminPort"), anyInt())).thenReturn(8000);
-    when(server.getAttribute(eq("appEngineDevServerAdminPort"), anyString())).thenReturn(null);
   }
 
-  private void setUpPortAttributes(int serverPort, int adminPort) {
-    setUpServerPortAttribute(serverPort);
+  private void setUpAdminPortAttribute(int adminPort) {
     when(server.getAttribute(eq("appEngineDevServerAdminPort"), anyInt())).thenReturn(adminPort);
     when(server.getAttribute(eq("appEngineDevServerAdminPort"), anyString()))
         .thenReturn(String.valueOf(adminPort));
@@ -55,9 +59,8 @@ public class LocalAppEngineServerBehaviourTest {
 
   @Test
   public void testCheckAndSetPorts() throws CoreException {
-    setUpPortAttributes(65535 /* serverPort */, 8000 /* adminPort */);
-    when(server.getAttribute(eq("appEngineDevServerPort"), anyInt())).thenReturn(65535);
-    when(server.getAttribute(eq("appEngineDevServerAdminPort"), anyInt())).thenReturn(8000);
+    setUpServerPortAttribute(65535);
+    setUpAdminPortAttribute(8000);
     serverBehavior.checkAndSetPorts(server, portProber);
 
     assertEquals(65535, serverBehavior.getServerPort());
@@ -66,7 +69,8 @@ public class LocalAppEngineServerBehaviourTest {
 
   @Test
   public void testCheckAndSetPorts_portZero() throws CoreException {
-    setUpPortAttributes(0 /* serverPort */, 0 /* adminPort */);
+    setUpServerPortAttribute(0);
+    setUpAdminPortAttribute(0);
     serverBehavior.checkAndSetPorts(server, portProber);
 
     assertEquals(0, serverBehavior.getServerPort());
@@ -75,7 +79,7 @@ public class LocalAppEngineServerBehaviourTest {
 
   @Test
   public void testCheckAndSetPorts_adminPortAttributeNotSet() throws CoreException {
-    setUpServerPortAttribute(9080 /* serverPort */);  // admin port undefined
+    setUpServerPortAttribute(9800);
     serverBehavior.checkAndSetPorts(server, portProber);
 
     assertEquals(8000, serverBehavior.adminPort);
@@ -84,7 +88,8 @@ public class LocalAppEngineServerBehaviourTest {
   @Test
   public void testCheckAndSetPorts_negativeServerPort() {
     try {
-      setUpPortAttributes(-1, 9000);
+      setUpServerPortAttribute(-1);
+      setUpAdminPortAttribute(9000);
       serverBehavior.checkAndSetPorts(server, portProber);
       fail();
     } catch (CoreException ex) {
@@ -95,7 +100,8 @@ public class LocalAppEngineServerBehaviourTest {
   @Test
   public void testCheckAndSetPorts_negativeAdminPort() {
     try {
-      setUpPortAttributes(9080, -1);
+      setUpServerPortAttribute(9080);
+      setUpAdminPortAttribute(-1);
       serverBehavior.checkAndSetPorts(server, portProber);
       fail();
     } catch (CoreException ex) {
@@ -106,7 +112,8 @@ public class LocalAppEngineServerBehaviourTest {
   @Test
   public void testCheckAndSetPorts_outOfBoundServerPort() {
     try {
-      setUpPortAttributes(65536, 9000);
+      setUpServerPortAttribute(65536);
+      setUpAdminPortAttribute(9000);
       serverBehavior.checkAndSetPorts(server, portProber);
       fail();
     } catch (CoreException ex) {
@@ -117,7 +124,8 @@ public class LocalAppEngineServerBehaviourTest {
   @Test
   public void testCheckAndSetPorts_outOfBoundAdminPort() {
     try {
-      setUpPortAttributes(9080, 65536);
+      setUpServerPortAttribute(9080);
+      setUpAdminPortAttribute(65536);
       serverBehavior.checkAndSetPorts(server, portProber);
       fail();
     } catch (CoreException ex) {
@@ -129,7 +137,8 @@ public class LocalAppEngineServerBehaviourTest {
   public void testCheckAndSetPorts_serverPortInUse() {
     try {
       when(portProber.isPortInUse(65535)).thenReturn(true);
-      setUpPortAttributes(65535, 9000);
+      setUpServerPortAttribute(65535);
+      setUpAdminPortAttribute(9000);
       serverBehavior.checkAndSetPorts(server, portProber);
       fail();
     } catch (CoreException ex) {
@@ -150,7 +159,8 @@ public class LocalAppEngineServerBehaviourTest {
   public void testCheckAndSetPorts_adminPortSetAndPortInUse() {
     try {
       when(portProber.isPortInUse(65535)).thenReturn(true);
-      setUpPortAttributes(9080, 65535);
+      setUpServerPortAttribute(9080);
+      setUpAdminPortAttribute(65535);
       serverBehavior.checkAndSetPorts(server, portProber);
       fail();
     } catch (CoreException ex) {
@@ -259,7 +269,8 @@ public class LocalAppEngineServerBehaviourTest {
   @Test
   public void testExtractAdminPortFromOutput() throws CoreException {
     when(portProber.isPortInUse(8000)).thenReturn(true);
-    setUpPortAttributes(9080, 0);
+    setUpServerPortAttribute(9080);
+    setUpAdminPortAttribute(0);
     serverBehavior.checkAndSetPorts(server, portProber);
 
     simulateOutputParsing(serverOutputWithDefaultModule1);

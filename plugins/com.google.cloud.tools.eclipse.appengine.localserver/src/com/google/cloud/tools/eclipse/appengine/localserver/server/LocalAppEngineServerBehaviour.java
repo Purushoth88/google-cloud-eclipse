@@ -183,7 +183,7 @@ public class LocalAppEngineServerBehaviour extends ServerBehaviourDelegate
     }
 
     if (port != 0 && portProber.isPortInUse(port)) {
-      boolean failover = !attributeDefined(server, attribute);
+      boolean failover = !hasAttribute(server, attribute);
       if (failover) {
         logger.log(Level.INFO, attribute + ": port " + port + " in use. Picking an unused port.");
         port = 0;
@@ -195,7 +195,7 @@ public class LocalAppEngineServerBehaviour extends ServerBehaviourDelegate
     return port;
   }
 
-  private static boolean attributeDefined(IServer server, String attribute) {
+  private static boolean hasAttribute(IServer server, String attribute) {
     return server.getAttribute(attribute, (String) null) != null;
   }
 
