@@ -16,14 +16,18 @@
 
 package com.google.cloud.tools.eclipse.appengine.localserver.server;
 
+import com.google.cloud.tools.eclipse.appengine.facets.AppEngineStandardFacet;
+import com.google.cloud.tools.eclipse.appengine.localserver.Messages;
+import com.google.cloud.tools.eclipse.util.status.StatusUtil;
 import java.util.ArrayList;
 import java.util.List;
-
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.jst.server.core.IWebModule;
+import org.eclipse.osgi.util.NLS;
+import org.eclipse.wst.common.project.facet.core.ProjectFacetsManager;
 import org.eclipse.wst.server.core.IModule;
 import org.eclipse.wst.server.core.IModuleType;
 import org.eclipse.wst.server.core.IServer;
@@ -32,8 +36,9 @@ import org.eclipse.wst.server.core.model.ServerDelegate;
 
 @SuppressWarnings("restriction") // For FacetUtil
 public class LocalAppEngineServerDelegate extends ServerDelegate {
-  private static final String SERVLET_MODULE_FACET = "jst.web";
-  private static final String ATTR_APP_ENGINE_SERVER_MODULES = "app-engine-server-modules-list";
+  private static final IModule[] EMPTY_MODULES = new IModule[0];
+  private static final String SERVLET_MODULE_FACET = "jst.web"; //$NON-NLS-1$
+  private static final String ATTR_APP_ENGINE_SERVER_MODULES = "app-engine-server-modules-list"; //$NON-NLS-1$
 
   /**
    * Returns a {@link LocalAppEngineServerDelegate} instance associated with the
@@ -61,9 +66,13 @@ public class LocalAppEngineServerDelegate extends ServerDelegate {
     if (add != null) {
       for (IModule module : add) {
         if (module.getProject() != null) {
-          IStatus status = FacetUtil.verifyFacets(module.getProject(), getServer());
-          if (status != null && !status.isOK()) {
-            return status;
+          IStatus supportedFacets = FacetUtil.verifyFacets(module.getProject(), getServer());
+          if (supportedFacets != null && !supportedFacets.isOK()) {
+            return supportedFacets;
+          }
+          IStatus appEngineStandardFacetPresent = hasAppEngineStandardFacet(module);
+          if (appEngineStandardFacetPresent != null && !appEngineStandardFacetPresent.isOK()) {
+            return appEngineStandardFacetPresent;
           }
         }
       }
@@ -71,14 +80,35 @@ public class LocalAppEngineServerDelegate extends ServerDelegate {
     return Status.OK_STATUS;
   }
 
+  private static IStatus hasAppEngineStandardFacet(IModule module) {
+    try {
+      if (AppEngineStandardFacet.hasAppEngineFacet(ProjectFacetsManager.create(module.getProject()))) {
+        return Status.OK_STATUS;
+      } else {
+        return StatusUtil.error(LocalAppEngineServerDelegate.class, NLS.bind(Messages.GAE_STANDARD_FACET_MISSING,
+                                                                             module.getName(),
+                                                                             module.getProject().getName()));
+      }
+    } catch (CoreException ex) {
+      return StatusUtil.error(LocalAppEngineServerDelegate.class,
+                              NLS.bind(Messages.NOT_FACETED_PROJECT, module.getProject().getName()),
+                              ex);
+    }
+  }
+
   /**
-   * If the module is a web module returns the utility modules contained within its
-   * WAR, otherwise returns an empty list.
+   * If the module is a web module returns the utility modules contained within its WAR, otherwise
+   * returns an empty list.
+   * 
+   * @param module the module path traversed to this point
    */
   @Override
   public IModule[] getChildModules(IModule[] module) {
-    if ((module != null) && (module.length > 0) && (module[0] != null) && (module[0].getModuleType() != null)) {
-      IModule thisModule = module[0];
+    if (module == null || module.length == 0) {
+      return EMPTY_MODULES;
+    }
+    IModule thisModule = module[module.length - 1];
+    if (thisModule != null && thisModule.getModuleType() != null) {
       IModuleType moduleType = thisModule.getModuleType();
       if (moduleType != null && SERVLET_MODULE_FACET.equals(moduleType.getId())) { //$NON-NLS-1$
         IWebModule webModule = (IWebModule) thisModule.loadAdapter(IWebModule.class, null);
@@ -88,7 +118,7 @@ public class LocalAppEngineServerDelegate extends ServerDelegate {
         }
       }
     }
-    return new IModule[0];
+    return EMPTY_MODULES;
   }
 
   @Override

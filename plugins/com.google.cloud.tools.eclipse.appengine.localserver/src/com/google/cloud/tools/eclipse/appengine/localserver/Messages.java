@@ -20,11 +20,12 @@ import org.eclipse.osgi.util.NLS;
 
 public class Messages extends NLS {
   private static final String BUNDLE_NAME = "com.google.cloud.tools.eclipse.appengine.localserver.messages"; //$NON-NLS-1$
+  public static String NOT_FACETED_PROJECT;
+  public static String GAE_STANDARD_FACET_MISSING;
   public static String NEW_SERVER_DIALOG_PORT;
   public static String NEW_SERVER_DIALOG_INVALID_PORT_VALUE;
   public static String PORT_IN_USE;
   public static String PORT_OUT_OF_RANGE;
-  public static String SERVER_STOP_IN_PROGRESS;
   static {
     // initialize resource bundle
     NLS.initializeMessages(BUNDLE_NAME, Messages.class);
