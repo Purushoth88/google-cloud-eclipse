@@ -134,7 +134,7 @@ public class AppEngineLibrariesSelectorGroup {
                                                                                                         library)),
                              new UpdateValueStrategy(UpdateValueStrategy.POLICY_NEVER));
     // UI <- library selection model
-    bindingContext.bindValue(libraryButtonSelection, 
+    bindingContext.bindValue(libraryButtonSelection,
                              new DependentLibrarySelected(getDisplayRealm(),
                                                           library.getId(),
                                                           true /* resultIfFound */) {
@@ -188,16 +188,18 @@ public class AppEngineLibrariesSelectorGroup {
     }
 
     private void setManualSelection(SelectionEvent event) {
-      Button source = (Button) event.getSource();
-      if (event.getSource() instanceof Button && (source.getStyle() & SWT.CHECK) != 0) {
-        Button button = source;
-        button.setData(BUTTON_MANUAL_SELECTION_KEY, button.getSelection() ? new Object() : null);
+      if (event.getSource() instanceof Button) {
+        Button source = (Button) event.getSource();
+        if ((source.getStyle() & SWT.CHECK) != 0) {
+          Button button = source;
+          button.setData(BUTTON_MANUAL_SELECTION_KEY, button.getSelection() ? new Object() : null);
+        }
       }
     }
   }
 
   /**
-   * Returns a computed value based on whether the associated library is in a list or not. 
+   * Returns a computed value based on whether the associated library is in a list or not.
    */
   private class DependentLibrarySelected extends ComputedValue {
     private String libraryId;
