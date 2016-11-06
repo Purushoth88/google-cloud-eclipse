@@ -189,9 +189,8 @@ public class AppEngineLibrariesSelectorGroup {
 
     private void setManualSelection(SelectionEvent event) {
       if (event.getSource() instanceof Button) {
-        Button source = (Button) event.getSource();
-        if ((source.getStyle() & SWT.CHECK) != 0) {
-          Button button = source;
+        Button button = (Button) event.getSource();
+        if ((button.getStyle() & SWT.CHECK) != 0) {
           button.setData(BUTTON_MANUAL_SELECTION_KEY, button.getSelection() ? new Object() : null);
         }
       }
